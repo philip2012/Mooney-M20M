@@ -43,9 +43,9 @@ Not yet implemented:
 
 ## Installation
 
-Clone into your FlightGear `Aircraft` directory:
+Clone into your FlightGear `Aircraft` directory or any desired place：
 
 ```bash
 cd FlightGear/Aircraft
-git clone https://github.com/PhilipsGamer/Mooney-M20M.git
+git clone https://github.com/philip2012/Mooney-M20M.git
 ```
