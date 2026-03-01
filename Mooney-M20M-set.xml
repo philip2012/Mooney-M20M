@@ -17,6 +17,8 @@
         <flight-model>jsb</flight-model>
         <aero>FDM/Mooney-M20M</aero>
 
+        <primary-set>true</primary-set>
+
         <variant-of>Mooney M20</variant-of>
         <status>alpha</status>
         <rating>
@@ -36,6 +38,6 @@
     </tags>
 
     <model>
-        <path>Aircraft/Mooney-M20M/Models/Mooney-M20M.xml</path>
+        <path>Models/Mooney-M20M.xml</path>
     </model>
 </PropertyList>
