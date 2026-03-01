@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PropertyList>
+    <sim>
+        <name>Mooney M20M Bravo</name>
+        <description>Mooney M20M Bravo</description>
+        <long-description>The Mooney M20M Bravo is a high-performance, turbocharged four-seat
+            single-engine aircraft from Mooney’s long-body M20 family, designed for fast
+            cross-country travel at altitude. Powered by a 270-hp Lycoming TIO-540 engine, it
+            cruises around 200–215 KTAS and can reach flight levels up to 25,000 ft, giving
+            piston-aircraft speed with pressurization-free simplicity. Its sleek, retractable-gear
+            airframe and efficient wing deliver strong climb and long-range capability (≈1,000 nm),
+            making the Bravo one of the fastest certified piston singles of its era and a favorite
+            among owner-pilots seeking near-turboprop performance with lower operating costs.</long-description>
+        <author>Philips Nguyen (aka PhilipsGamer)</author>
+
+        <flight-model>jsb</flight-model>
+        <aero>FDM/Mooney-M20M</aero>
+
+        <variant-of>Mooney M20</variant-of>
+        <status>alpha</status>
+        <rating>
+            <FDM>0</FDM>
+            <systems>0</systems>
+            <cockpit>0</cockpit>
+            <model>0</model>
+        </rating>
+    </sim>
+
+    <tags>
+        <tag n="0">ga</tag>
+        <tag n="1">single</tag>
+        <tag n="2">piston</tag>
+        <tag n="3">retractable-gear</tag>
+        <tag n="4">turbocharged</tag>
+    </tags>
+
+    <model>
+        <path>Aircraft/Mooney-M20M/Models/Mooney-M20M.xml</path>
+    </model>
+</PropertyList>
