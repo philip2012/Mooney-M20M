@@ -45,6 +45,12 @@
                 <path>Previews/interior1.jpg</path>
             </preview>
         </previews>
+
+        <urls>
+            <wikipedia>https://en.wikipedia.org/wiki/Mooney_M20</wikipedia>
+            <code-repository>https://github.com/philip2012/Mooney-M20M</code-repository>
+            <support>https://github.com/philip2012/Mooney-M20M/issues</support>
+        </urls>
     </sim>
 
     <tags>
