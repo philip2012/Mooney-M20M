@@ -27,6 +27,24 @@
             <cockpit>0</cockpit>
             <model>0</model>
         </rating>
+
+        <previews>
+            <preview>
+                <type>exterior</type>
+                <splash type="bool">true</splash>
+                <path>Previews/exterior1.jpg</path>
+            </preview>
+            <preview>
+                <type>exterior</type>
+                <splash type="bool">true</splash>
+                <path>Previews/exterior2.jpg</path>
+            </preview>
+            <preview>
+                <type>interior</type>
+                <splash type="bool">true</splash>
+                <path>Previews/interior1.jpg</path>
+            </preview>
+        </previews>
     </sim>
 
     <tags>
