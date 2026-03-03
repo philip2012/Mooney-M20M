@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<metrics>
+    <wingarea unit="FT2">175</wingarea>
+    <wingspan unit="FT">36.0</wingspan>
+    <chord unit="FT">4.9</chord>
+
+    <htailarea unit="FT2">30</htailarea>
+    <htailarm unit="FT">12</htailarm>
+
+    <vtailarea unit="FT2">18</vtailarea>
+    <vtailarm unit="FT">11</vtailarm>
+</metrics>

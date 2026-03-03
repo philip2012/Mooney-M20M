@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ground_reactions>
+    <contact type="BOGEY" name="nose">
+        <location unit="FT">
+            <x>6.0</x>
+            <y>0.0</y>
+            <z>-2.5</z>
+        </location>
+        <static_friction>0.8</static_friction>
+        <dynamic_friction>0.6</dynamic_friction>
+        <spring_coeff unit="LBS/FT">20000</spring_coeff>
+        <damping_coeff unit="LBS/FT/SEC">3000</damping_coeff>
+        <max_steer unit="DEG">30</max_steer>
+    </contact>
+
+    <contact type="BOGEY" name="left-main">
+        <location unit="FT">
+            <x>-1.0</x>
+            <y>-4.0</y>
+            <z>-3.0</z>
+        </location>
+        <static_friction>0.8</static_friction>
+        <dynamic_friction>0.6</dynamic_friction>
+        <spring_coeff unit="LBS/FT">35000</spring_coeff>
+        <damping_coeff unit="LBS/FT/SEC">5000</damping_coeff>
+    </contact>
+
+    <contact type="BOGEY" name="right-main">
+        <location unit="FT">
+            <x>-1.0</x>
+            <y>4.0</y>
+            <z>-3.0</z>
+        </location>
+        <static_friction>0.8</static_friction>
+        <dynamic_friction>0.6</dynamic_friction>
+        <spring_coeff unit="LBS/FT">35000</spring_coeff>
+        <damping_coeff unit="LBS/FT/SEC">5000</damping_coeff>
+    </contact>
+</ground_reactions>
