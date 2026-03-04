@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mass_balance>
+    <emptywt unit="LBS">2200</emptywt>
+
+    <!-- Reference point / CG; keep it simple. -->
+    <location name="CG" unit="FT">
+        <x>0.0</x>
+        <y>0.0</y>
+        <z>0.0</z>
+    </location>
+
+    <!-- Inertia tensor about CG. Non-zero values are important. -->
+    <ixx unit="SLUG*FT2">1400</ixx>
+    <iyy unit="SLUG*FT2">2200</iyy>
+    <izz unit="SLUG*FT2">3200</izz>
+    <ixy unit="SLUG*FT2">0</ixy>
+    <ixz unit="SLUG*FT2">0</ixz>
+    <iyz unit="SLUG*FT2">0</iyz>
+</mass_balance>

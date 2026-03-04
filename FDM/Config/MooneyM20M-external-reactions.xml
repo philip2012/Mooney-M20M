@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Destination: Mooney-M20M/FDM/MooneyM20M-external-reactions.xml -->
+<!-- Tow/tractor attach point: derived from nose gear contact location (early-dev, reference-based). -->
+
+<external_reactions>
+    <force name="tractor" frame="BODY">
+        <location unit="M">
+            <x>1.8288</x>
+            <y>0.0</y>
+            <z>-0.7620</z>
+        </location>
+        <direction>
+            <x>1</x>
+            <y>0</y>
+            <z>0</z>
+        </direction>
+    </force>
+</external_reactions>
