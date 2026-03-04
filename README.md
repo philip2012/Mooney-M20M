@@ -44,13 +44,13 @@ Not yet implemented:
 ## Official Links
 
 - Wikipedia  
-  https://en.wikipedia.org/wiki/Mooney_M20
+  <https://en.wikipedia.org/wiki/Mooney_M20>
 
 - Source Code Repository  
-  https://github.com/philip2012/Mooney-M20M
+  <https://github.com/philip2012/Mooney-M20M>
 
 - Issue Tracker / Support  
-  https://github.com/philip2012/Mooney-M20M/issues
+  <https://github.com/philip2012/Mooney-M20M/issues>
 
 - FlightGear Wiki Page  
   <https://wiki.flightgear.org/Mooney_M20M_Bravo>
