@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mass_balance>
-    <emptywt unit="LBS">2200</emptywt>
+<mass_balance negated_crossproduct_inertia="false">
+    <!-- base empty weight-->
+    <emptywt unit="LBS">2401</emptywt>
 
-    <!-- Reference point / CG; keep it simple. -->
-    <location name="CG" unit="FT">
-        <x>0.0</x>
+    <!-- CG x is in inches from aircraft datum; keep all stations consistent (gear/tanks/etc). -->
+    <location name="CG" unit="IN">
+        <x>48.5</x>
         <y>0.0</y>
         <z>0.0</z>
     </location>
 
-    <!-- Inertia tensor about CG. Non-zero values are important. -->
-    <ixx unit="SLUG*FT2">1400</ixx>
-    <iyy unit="SLUG*FT2">2200</iyy>
-    <izz unit="SLUG*FT2">3200</izz>
+    <ixx unit="SLUG*FT2">1350</ixx>
+    <iyy unit="SLUG*FT2">1900</iyy>
+    <izz unit="SLUG*FT2">2850</izz>
+
     <ixy unit="SLUG*FT2">0</ixy>
     <ixz unit="SLUG*FT2">0</ixz>
     <iyz unit="SLUG*FT2">0</iyz>
