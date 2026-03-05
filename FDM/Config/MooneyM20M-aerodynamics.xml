@@ -1,42 +1,340 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <aerodynamics>
-    <!-- Minimal valid JSBSim aero: Lift/Side/Drag + Roll/Pitch/Yaw axes
-         Using zero functions just to pass loader and spawn. -->
+    <!-- JSBSim wind-axis set: DRAG, SIDE, LIFT + ROLL, PITCH, YAW -->
+    <!-- Lift/Drag/Sideslip property conventions and qbar scaling per JSBSim/FlightGear docs. -->
+
+    <!-- Keep the sim numerically sane outside the normal envelope -->
+    <alphalimits unit="DEG">
+        <min>-12</min>
+        <max>25</max>
+    </alphalimits>
+
+    <!-- Simple stall hysteresis: enter "stalled" near clean stall AoA and recover lower -->
+    <!-- Tune these after initial flight tests; values here are based on CLmax-derived stall angle
+    ~13-14 deg. -->
+    <hysteresis_limits unit="DEG">
+        <min>8</min>
+        <max>13.5</max>
+    </hysteresis_limits>
+
+    <!-- Unit conversions -->
+    <function name="aero/units/deg2rad">
+        <value>0.017453292519943295</value>
+    </function>
+
+    <!-- Control surface deflections (edit property names if your FCS uses different ones) -->
+    <function name="aero/controls/deltae-rad">
+        <product>
+            <property>fcs/elevator-pos-deg</property>
+            <property>aero/units/deg2rad</property>
+        </product>
+    </function>
+
+    <function name="aero/controls/deltaa-rad">
+        <product>
+            <property>fcs/aileron-pos-deg</property>
+            <property>aero/units/deg2rad</property>
+        </product>
+    </function>
+
+    <function name="aero/controls/deltar-rad">
+        <product>
+            <property>fcs/rudder-pos-deg</property>
+            <property>aero/units/deg2rad</property>
+        </product>
+    </function>
+
+    <!-- Flap fraction: assumes full landing is 33 deg per FAA aircraft specification -->
+    <function name="aero/flaps/factor33">
+        <quotient>
+            <property>fcs/flap-pos-deg</property>
+            <value>33</value>
+        </quotient>
+        <clipto>
+            <min>0</min>
+            <max>1</max>
+        </clipto>
+    </function>
+
+    <!-- Non-dimensional rate terms -->
+    <!-- p_hat = p * b/(2V), q_hat = q * c/(2V), r_hat = r * b/(2V) -->
+    <function name="aero/phat">
+        <product>
+            <property>velocities/p-aero-rad_sec</property>
+            <property>aero/bi2vel</property>
+        </product>
+    </function>
+
+    <function name="aero/qhat">
+        <product>
+            <property>velocities/q-aero-rad_sec</property>
+            <property>aero/ci2vel</property>
+        </product>
+    </function>
+
+    <function name="aero/rhat">
+        <product>
+            <property>velocities/r-aero-rad_sec</property>
+            <property>aero/bi2vel</property>
+        </product>
+    </function>
+
+    <!-- Lift coefficient tables -->
+    <!-- Clean CL(α) is fitted to Vs(clean)=66.5 KIAS at W=3368 lb, S=174.8 ft^2 (CLmax≈1.29). -->
+    <function name="aero/coefficient/CL_clean">
+        <table>
+            <independentVar lookup="row">aero/alpha-deg</independentVar>
+            <tableData>
+                -12 -0.80
+                -10 -0.60
+                -5 -0.20
+                0 0.17
+                5 0.59
+                10 1.01
+                13.5 1.29
+                15 1.25
+                20 0.85
+                25 0.55
+            </tableData>
+        </table>
+    </function>
+
+    <!-- Full flaps (33 deg) table fitted to Vso=59 KIAS at W=3368 lb, S=174.8 ft^2 (CLmax≈1.63). -->
+    <function name="aero/coefficient/CL_flaps33">
+        <table>
+            <independentVar lookup="row">aero/alpha-deg</independentVar>
+            <tableData>
+                -12 -1.00
+                -10 -0.75
+                -5 -0.25
+                0 0.45
+                5 1.02
+                10 1.50
+                12 1.63
+                15 1.40
+                20 0.95
+                25 0.65
+            </tableData>
+        </table>
+    </function>
+
+    <!-- Blend clean vs flaps table by flap fraction -->
+    <function name="aero/coefficient/CL_base">
+        <sum>
+            <product>
+                <difference>
+                    <value>1</value>
+                    <property>aero/flaps/factor33</property>
+                </difference>
+                <property>aero/coefficient/CL_clean</property>
+            </product>
+            <product>
+                <property>aero/flaps/factor33</property>
+                <property>aero/coefficient/CL_flaps33</property>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Add pitch-rate and elevator lift contributions (starter values; tune) -->
+    <function name="aero/coefficient/CL">
+        <sum>
+            <property>aero/coefficient/CL_base</property>
+            <product>
+                <value>3.0</value>          <!-- CLq (starter) -->
+                <property>aero/qhat</property>
+            </product>
+            <product>
+                <value>0.30</value>         <!-- CLde per rad (starter) -->
+                <property>aero/controls/deltae-rad</property>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Drag coefficient model: CD = CD0 + k*CL^2, plus flap/gear increments -->
+    <function name="aero/coefficient/CD0">
+        <sum>
+            <value>0.0188</value> <!-- calibrated order-of-magnitude from high-altitude cruise -->
+            <product>
+                <value>0.015</value> <!-- flap drag increment at full flaps (starter) -->
+                <pow>
+                    <property>aero/flaps/factor33</property>
+                    <value>2</value>
+                </pow>
+            </product>
+            <product>
+                <value>0.012</value> <!-- gear-down drag increment (starter). Set to 0 if you don't
+                have gear pos property. -->
+                <property>gear/gear-pos-norm</property>
+            </product>
+        </sum>
+    </function>
+
+    <function name="aero/coefficient/CD">
+        <sum>
+            <property>aero/coefficient/CD0</property>
+            <product>
+                <value>0.063</value>  <!-- induced drag factor k (starter; bracketed by AR/e and
+                Mooney-attributed polars) -->
+                <pow>
+                    <property>aero/coefficient/CL</property>
+                    <value>2</value>
+                </pow>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Sideforce coefficient (starter stability + control) -->
+    <function name="aero/coefficient/CY">
+        <sum>
+            <product>
+                <value>-0.75</value> <!-- CYbeta (starter) -->
+                <property>aero/beta-rad</property>
+            </product>
+            <product>
+                <value>0.17</value>  <!-- CYdr per rad (starter) -->
+                <property>aero/controls/deltar-rad</property>
+            </product>
+            <product>
+                <value>-0.20</value> <!-- CYr (starter damping) -->
+                <property>aero/rhat</property>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Roll moment coefficient Cl (starter) -->
+    <function name="aero/coefficient/Cl">
+        <sum>
+            <product>
+                <value>-0.12</value> <!-- Clbeta -->
+                <property>aero/beta-rad</property>
+            </product>
+            <product>
+                <value>-0.55</value> <!-- Clp -->
+                <property>aero/phat</property>
+            </product>
+            <product>
+                <value>0.12</value>  <!-- Clr -->
+                <property>aero/rhat</property>
+            </product>
+            <product>
+                <value>0.08</value>  <!-- Clda per rad -->
+                <property>aero/controls/deltaa-rad</property>
+            </product>
+            <product>
+                <value>0.02</value>  <!-- Cldr per rad -->
+                <property>aero/controls/deltar-rad</property>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Pitch moment coefficient Cm (starter longitudinal stability) -->
+    <function name="aero/coefficient/Cm">
+        <sum>
+            <value>0.02</value> <!-- Cm0 (trim bias; tune) -->
+            <product>
+                <value>-1.20</value> <!-- Cmalpha -->
+                <property>aero/alpha-rad</property>
+            </product>
+            <product>
+                <value>-10.0</value> <!-- Cmq -->
+                <property>aero/qhat</property>
+            </product>
+            <product>
+                <value>-1.20</value> <!-- Cmde per rad -->
+                <property>aero/controls/deltae-rad</property>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Yaw moment coefficient Cn (starter directional stability) -->
+    <function name="aero/coefficient/Cn">
+        <sum>
+            <product>
+                <value>0.08</value> <!-- Cnbeta -->
+                <property>aero/beta-rad</property>
+            </product>
+            <product>
+                <value>-0.06</value> <!-- Cnp -->
+                <property>aero/phat</property>
+            </product>
+            <product>
+                <value>-0.22</value> <!-- Cnr -->
+                <property>aero/rhat</property>
+            </product>
+            <product>
+                <value>0.01</value> <!-- Cnda -->
+                <property>aero/controls/deltaa-rad</property>
+            </product>
+            <product>
+                <value>-0.10</value> <!-- Cndr -->
+                <property>aero/controls/deltar-rad</property>
+            </product>
+        </sum>
+    </function>
+
+    <!-- Forces (lbs) -->
+    <axis name="LIFT">
+        <function name="aero/lift-lbs">
+            <product>
+                <property>aero/qbar-psf</property>
+                <property>metrics/Sw-sqft</property>
+                <property>aero/coefficient/CL</property>
+            </product>
+        </function>
+    </axis>
 
     <axis name="DRAG">
         <function name="aero/drag-lbs">
-            <value>0</value>
+            <product>
+                <property>aero/qbar-psf</property>
+                <property>metrics/Sw-sqft</property>
+                <property>aero/coefficient/CD</property>
+            </product>
         </function>
     </axis>
 
     <axis name="SIDE">
         <function name="aero/side-lbs">
-            <value>0</value>
+            <product>
+                <property>aero/qbar-psf</property>
+                <property>metrics/Sw-sqft</property>
+                <property>aero/coefficient/CY</property>
+            </product>
         </function>
     </axis>
 
-    <axis name="LIFT">
-        <function name="aero/lift-lbs">
-            <value>0</value>
-        </function>
-    </axis>
-
+    <!-- Moments (ft-lbs) -->
     <axis name="ROLL">
         <function name="aero/roll-lbsft">
-            <value>0</value>
+            <product>
+                <property>aero/qbar-psf</property>
+                <property>metrics/Sw-sqft</property>
+                <property>metrics/bw-ft</property>
+                <property>aero/coefficient/Cl</property>
+            </product>
         </function>
     </axis>
 
     <axis name="PITCH">
         <function name="aero/pitch-lbsft">
-            <value>0</value>
+            <product>
+                <property>aero/qbar-psf</property>
+                <property>metrics/Sw-sqft</property>
+                <property>metrics/cbarw-ft</property>
+                <property>aero/coefficient/Cm</property>
+            </product>
         </function>
     </axis>
 
     <axis name="YAW">
         <function name="aero/yaw-lbsft">
-            <value>0</value>
+            <product>
+                <property>aero/qbar-psf</property>
+                <property>metrics/Sw-sqft</property>
+                <property>metrics/bw-ft</property>
+                <property>aero/coefficient/Cn</property>
+            </product>
         </function>
     </axis>
 </aerodynamics>
