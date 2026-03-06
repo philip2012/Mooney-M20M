@@ -23,6 +23,76 @@
         <value>0.017453292519943295</value>
     </function>
 
+    <!-- Convert wing alpha to degrees for table lookups -->
+    <function name="aero/alpha-wing-deg">
+        <product>
+            <property>aero/alpha-wing-rad</property>
+            <value>57.29577951308232</value>
+        </product>
+    </function>
+
+    <function name="aero/coefficient/CL_clean">
+        <table>
+            <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
+            <tableData>
+                -12 -0.80
+                -10 -0.60
+                -5 -0.20
+                0 0.17
+                5 0.59
+                10 1.01
+                13.5 1.29
+                15 1.25
+                20 0.85
+                25 0.55
+            </tableData>
+        </table>
+    </function>
+
+    <function name="aero/coefficient/CL_flaps33">
+        <table>
+            <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
+            <tableData>
+                -12 -1.00
+                -10 -0.75
+                -5 -0.25
+                0 0.45
+                5 1.02
+                10 1.50
+                12 1.63
+                15 1.40
+                20 0.95
+                25 0.65
+            </tableData>
+        </table>
+    </function>
+
+    <function name="aero/bi2vel">
+        <quotient>
+            <property>metrics/bw-ft</property>
+            <product>
+                <value>2</value>
+                <max>
+                    <property>velocities/vt-fps</property>
+                    <value>50</value>
+                </max>
+            </product>
+        </quotient>
+    </function>
+
+    <function name="aero/ci2vel">
+        <quotient>
+            <property>metrics/cbarw-ft</property>
+            <product>
+                <value>2</value>
+                <max>
+                    <property>velocities/vt-fps</property>
+                    <value>50</value>
+                </max>
+            </product>
+        </quotient>
+    </function>
+
     <!-- Control surface deflections (edit property names if your FCS uses different ones) -->
     <function name="aero/controls/deltae-rad">
         <product>
@@ -234,49 +304,6 @@
         </sum>
     </function>
 
-    <!-- Convert wing alpha to degrees for table lookups -->
-    <function name="aero/alpha-wing-deg">
-        <product>
-            <property>aero/alpha-wing-rad</property>
-            <value>57.29577951308232</value>
-        </product>
-    </function>
-
-    <function name="aero/coefficient/CL_clean">
-        <table>
-            <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
-            <tableData>
-                -12 -0.80
-                -10 -0.60
-                -5 -0.20
-                0 0.17
-                5 0.59
-                10 1.01
-                13.5 1.29
-                15 1.25
-                20 0.85
-                25 0.55
-            </tableData>
-        </table>
-    </function>
-
-    <function name="aero/coefficient/CL_flaps33">
-        <table>
-            <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
-            <tableData>
-                -12 -1.00
-                -10 -0.75
-                -5 -0.25
-                0 0.45
-                5 1.02
-                10 1.50
-                12 1.63
-                15 1.40
-                20 0.95
-                25 0.65
-            </tableData>
-        </table>
-    </function>
 
     <!-- Forces (lbs) -->
     <axis name="LIFT">
@@ -346,30 +373,4 @@
     <!-- Non-dimensional rate helper terms -->
     <!-- bi2vel = b / (2V), ci2vel = c / (2V) -->
     <!-- Use a minimum VT to avoid division spikes near zero airspeed -->
-
-    <function name="aero/bi2vel">
-        <quotient>
-            <property>metrics/bw-ft</property>
-            <product>
-                <value>2</value>
-                <max>
-                    <property>velocities/vt-fps</property>
-                    <value>50</value>
-                </max>
-            </product>
-        </quotient>
-    </function>
-
-    <function name="aero/ci2vel">
-        <quotient>
-            <property>metrics/cbarw-ft</property>
-            <product>
-                <value>2</value>
-                <max>
-                    <property>velocities/vt-fps</property>
-                    <value>50</value>
-                </max>
-            </product>
-        </quotient>
-    </function>
 </aerodynamics>
