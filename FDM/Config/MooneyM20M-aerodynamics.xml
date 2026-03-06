@@ -80,45 +80,6 @@
         </product>
     </function>
 
-    <!-- Lift coefficient tables -->
-    <!-- Clean CL(α) is fitted to Vs(clean)=66.5 KIAS at W=3368 lb, S=174.8 ft^2 (CLmax≈1.29). -->
-    <function name="aero/coefficient/CL_clean">
-        <table>
-            <independentVar lookup="row">aero/alpha-deg</independentVar>
-            <tableData>
-                -12 -0.80
-                -10 -0.60
-                -5 -0.20
-                0 0.17
-                5 0.59
-                10 1.01
-                13.5 1.29
-                15 1.25
-                20 0.85
-                25 0.55
-            </tableData>
-        </table>
-    </function>
-
-    <!-- Full flaps (33 deg) table fitted to Vso=59 KIAS at W=3368 lb, S=174.8 ft^2 (CLmax≈1.63). -->
-    <function name="aero/coefficient/CL_flaps33">
-        <table>
-            <independentVar lookup="row">aero/alpha-deg</independentVar>
-            <tableData>
-                -12 -1.00
-                -10 -0.75
-                -5 -0.25
-                0 0.45
-                5 1.02
-                10 1.50
-                12 1.63
-                15 1.40
-                20 0.95
-                25 0.65
-            </tableData>
-        </table>
-    </function>
-
     <!-- Blend clean vs flaps table by flap fraction -->
     <function name="aero/coefficient/CL_base">
         <sum>
@@ -301,7 +262,7 @@
 
     <function name="aero/coefficient/CL_flaps33">
         <table>
-            <independentVar lookup="row">aero/alpha-wing-rad</independentVar>
+            <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
             <tableData>
                 -12 -1.00
                 -10 -0.75
