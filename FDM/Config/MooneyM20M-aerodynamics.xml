@@ -342,4 +342,34 @@
             </product>
         </function>
     </axis>
+
+    <!-- Non-dimensional rate helper terms -->
+    <!-- bi2vel = b / (2V), ci2vel = c / (2V) -->
+    <!-- Use a minimum VT to avoid division spikes near zero airspeed -->
+
+    <function name="aero/bi2vel">
+        <quotient>
+            <property>metrics/bw-ft</property>
+            <product>
+                <value>2</value>
+                <max>
+                    <property>velocities/vt-fps</property>
+                    <value>50</value>
+                </max>
+            </product>
+        </quotient>
+    </function>
+
+    <function name="aero/ci2vel">
+        <quotient>
+            <property>metrics/cbarw-ft</property>
+            <product>
+                <value>2</value>
+                <max>
+                    <property>velocities/vt-fps</property>
+                    <value>50</value>
+                </max>
+            </product>
+        </quotient>
+    </function>
 </aerodynamics>
