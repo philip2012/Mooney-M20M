@@ -1,13 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  metrics.xml — Mooney M20M Bravo (JSBSim / FlightGear)
+
+  Primary geometry source:
+    - Mooney M20M Service & Maintenance Manual (Dimensions/Areas + Wing MAC/AR/Taper/Incidence)
+
+  Notes:
+    - JSBSim reads these <metrics> values and exposes standard properties:
+        metrics/Sw-sqft   (wing area)
+        metrics/bw-ft     (wingspan)
+        metrics/cbarw-ft  (wing chord)
+        metrics/Sh-sqft, metrics/Sv-sqft (tail areas)
+        metrics/aero-rp-*-in            (aerodynamic reference point in inches)
+    - wing_incidence affects alpha-wing inside JSBSim: alpha_wing = alpha + wing_incidence
+-->
 
 <metrics>
-    <wingarea unit="FT2">175</wingarea>
-    <wingspan unit="FT">36.0</wingspan>
-    <chord unit="FT">4.9</chord>
+    <!-- Wing reference dimensions (used for force/moment scaling and non-dimensional rates) -->
+    <wingarea unit="FT2">174.786</wingarea>     <!-- Published wing area -->
+    <wingspan unit="FT">36.0833</wingspan>      <!-- 36 ft 1 in -->
+    <chord unit="FT">5.0833</chord>             <!-- Published MAC: 61 in -->
 
-    <htailarea unit="FT2">30</htailarea>
-    <htailarm unit="FT">12</htailarm>
+    <!-- Derived (for your notebook, not parsed by JSBSim):
+       mean geometric chord = S/b = 4.844 ft (58.1 in)
+       aspect ratio AR = b^2/S ≈ 7.449 (manual lists 7.448)
+       taper ratio (Cr/Ct) = 2.271 => Ct/Cr ≈ 0.440
+  -->
 
-    <vtailarea unit="FT2">18</vtailarea>
-    <vtailarm unit="FT">11</vtailarm>
+    <!-- Tail areas:
+       The Mooney manual lists stabilizer and control surface areas separately.
+       JSBSim has only ONE horizontal/vertical tail area slot, so we choose TOTAL areas:
+
+         Sh_total = horizontal stabilizer + elevators = 21.42 + 13.0 = 34.42 ft^2
+         Sv_total = vertical fin + rudder            = 7.8  + 6.25 = 14.05 ft^2
+
+       If your later tail-aero math expects "fixed-only", set them to 21.42 and 7.8 instead.
+  -->
+    <htailarea unit="FT2">34.42</htailarea>
+    <vtailarea unit="FT2">14.05</vtailarea>
+
+    <!-- Tail arms (lever arms):
+       Not explicitly published as a single number in openly accessible sources.
+       Estimated from Mooney stationing + mid-CG and checked against typical tail-volume ranges.
+
+       Start point (recommended):
+         lH = lV = 13.54 ft
+
+       Practical tuning range:
+         12.0–15.0 ft
+  -->
+    <htailarm unit="FT">13.54</htailarm>
+    <vtailarm unit="FT">13.54</vtailarm>
+
+    <!-- Wing incidence:
+       Use the published wing incidence (scalar). JSBSim uses this to compute alpha-wing.
+       If your 3D/model body axis definition already "bakes in" wing incidence, set this to 0.
+  -->
+    <wing_incidence unit="DEG">2.50</wing_incidence>
+
+    <!-- Reference points in the structural frame (inches)
+       AERORP: where aerodynamic FORCES are applied. If AERORP != CG, you create extra moments.
+       VRP:   where JSBSim reports "world position" (FlightGear uses this for placing the model).
+       EYEPOINT: used for pilot G-force computations (flight physics usually unaffected).
+  -->
+    <location name="AERORP" unit="IN">
+        <x>0.0</x>
+        <y>0.0</y>
+        <z>0.0</z>
+    </location>
+
+    <location name="VRP" unit="IN">
+        <x>0.0</x>
+        <y>0.0</y>
+        <z>0.0</z>
+    </location>
+
+    <location name="EYEPOINT" unit="IN">
+        <!-- Placeholder: adjust once cockpit view is aligned -->
+        <x>-70.0</x>
+        <y>0.0</y>
+        <z>20.0</z>
+    </location>
 </metrics>
