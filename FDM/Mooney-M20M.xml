@@ -5,15 +5,15 @@
 
 <fdm_config version="2.0" release="ALPHA">
     <fileheader>
-        <author>Philips</author>
-        <description>Mooney M20M Bravo - minimal placeholder FDM for load stability.</description>
+        <author>Philips Nguyen (aka PhilipsGamer)</author>
+        <description>Mooney M20M Bravo — JSBSim FDM baseline (early development).</description>
         <note>
-            This file intentionally contains only metrics and mass_balance.
-            Add aerodynamics/controls/gear/propulsion later, incrementally.
+            Initial implementation of metrics, mass balance, aerodynamics,
+            ground reactions and external forces. Parameters are provisional
+            and will be refined through testing and tuning.
         </note>
     </fileheader>
 
-    <!-- Basic geometry. Values are placeholders; they just need to exist. -->
     <metrics file="FDM/Config/MooneyM20M-metrics" />
     <aerodynamics file="FDM/Config/MooneyM20M-aerodynamics" />
     <ground_reactions file="FDM/Config/MooneyM20M-ground-reactions" />
