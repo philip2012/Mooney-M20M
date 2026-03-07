@@ -31,6 +31,14 @@
         </product>
     </function>
 
+    <function name="aero/gear-extension-norm">
+        <max>
+            <property>gear/gear[0]/position-norm</property>
+            <property>gear/gear[1]/position-norm</property>
+            <property>gear/gear[2]/position-norm</property>
+        </max>
+    </function>
+
     <function name="aero/coefficient/CL_clean">
         <table>
             <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
@@ -196,7 +204,7 @@
             <product>
                 <value>0.012</value> <!-- gear-down drag increment (starter). Set to 0 if you don't
                 have gear pos property. -->
-                <property>gear/gear-pos-norm</property>
+                <property>aero/gear-extension-norm</property>
             </product>
         </sum>
     </function>
