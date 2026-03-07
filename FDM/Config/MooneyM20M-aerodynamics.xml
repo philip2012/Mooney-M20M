@@ -31,14 +31,6 @@
         </product>
     </function>
 
-    <function name="aero/gear-extension-norm">
-        <max>
-            <property>gear/gear[0]/position-norm</property>
-            <property>gear/gear[1]/position-norm</property>
-            <property>gear/gear[2]/position-norm</property>
-        </max>
-    </function>
-
     <function name="aero/coefficient/CL_clean">
         <table>
             <independentVar lookup="row">aero/alpha-wing-deg</independentVar>
@@ -75,7 +67,7 @@
         </table>
     </function>
 
-    <function name="aero/bi2vel">
+    <!-- <function name="aero/bi2vel">
         <quotient>
             <property>metrics/bw-ft</property>
             <product>
@@ -99,7 +91,7 @@
                 </max>
             </product>
         </quotient>
-    </function>
+    </function> -->
 
     <!-- Control surface deflections (edit property names if your FCS uses different ones) -->
     <function name="aero/controls/deltae-rad">
@@ -111,8 +103,8 @@
 
     <function name="aero/controls/deltaa-rad">
         <product>
-            <property>fcs/aileron-pos-deg</property>
-            <property>aero/units/deg2rad</property>
+            <property>fcs/aileron-cmd-norm</property>
+            <value>0.3490658503988659</value>
         </product>
     </function>
 
@@ -202,9 +194,8 @@
                 </pow>
             </product>
             <product>
-                <value>0.012</value> <!-- gear-down drag increment (starter). Set to 0 if you don't
-                have gear pos property. -->
-                <property>aero/gear-extension-norm</property>
+                <value>0.012</value>
+                <property>gear/gear-pos-norm</property>
             </product>
         </sum>
     </function>
@@ -377,8 +368,4 @@
             </product>
         </function>
     </axis>
-
-    <!-- Non-dimensional rate helper terms -->
-    <!-- bi2vel = b / (2V), ci2vel = c / (2V) -->
-    <!-- Use a minimum VT to avoid division spikes near zero airspeed -->
 </aerodynamics>

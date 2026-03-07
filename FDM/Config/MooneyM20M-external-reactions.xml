@@ -1,49 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- MooneyM20M-external-reactions.xml
-     Purpose: define external attachment points (tow/tractor) for JSBSim / FlightGear.
-
-     Conventions used (recommended for this FDM):
-       - LOCATION is always structural frame (X +aft, Y +right, Z +up) per JSBSim external_reactions
-rules.
-       - DIRECTION is in the selected frame="BODY" (X +forward, Y +right, Z +down).
-       - Units for location: IN (matches ground_reactions usage).
--->
-
 <external_reactions>
-    <!-- Property declarations:
-       If a <function> references properties that don't exist yet, JSBSim can error unless declared here. -->
-    <property>fcs/tow-enable</property>
-    <property>fcs/tow-force-cmd-lbs</property>
-
-    <!-- Tow/tractor attachment near nose gear.
-       Base nose gear ground contact (given): x=-21.52 in, y=0, z=-34.0 in
-       Tow point raised to approx axle height: +5.7 in (5.00-5 static load radius) => z=-28.3 in
-       Metric equivalents (for reference): x=-0.5466 m, z=-0.7188 m
-  -->
     <force name="tow-tractor" frame="BODY">
-        <!-- "Enabled + max_force" hardening:
-         JSBSim does not define <enabled> or <max_force> tags for <force>, so we implement both here.
-         Output of this function is the force magnitude in lbf.
-    -->
-        <function>
-            <product>
-                <property>fcs/tow-enable</property>
-                <property>fcs/tow-force-cmd-lbs</property>
-            </product>
-            <clipto>
-                <min>0</min>
-                <max>500</max> <!-- conservative clamp; tune if needed -->
-            </clipto>
-        </function>
-
         <location unit="IN">
             <x>-21.52</x>
             <y>0</y>
             <z>-28.3</z>
         </location>
-
-        <!-- Foward tow pull in BODY axes-->
         <direction>
             <x>1</x>
             <y>0</y>
