@@ -15,18 +15,26 @@ This project aims to bring a realistic, JSBSim-based Mooney Bravo to FlightGear 
 Current state:
 
 - Aircraft structure created
-- JSBSim FDM scaffold (donor-based)
-- Aircraft loads in FlightGear
+- JSBSim FDM baseline implemented
+- Metrics, mass balance, aerodynamics, ground reactions, and external reactions added
+- Aircraft loads successfully in FlightGear
+- Baseline property-binding and control-input issues resolved
 - Placeholder model support
+- Initial parked-state and control sanity checks completed
+
+Partially implemented:
+
+- Mooney-based geometry and reference values
+- Baseline retractable-gear FDM behavior
+- Early aerodynamic coefficient model
 
 Not yet implemented:
 
-- Accurate Mooney geometry
-- Turbocharged piston engine modeling
-- Retractable gear system
+- Turbocharged piston engine / propeller modeling
+- Full retractable gear system and animation
 - Electrical / fuel systems
 - Cockpit and instruments
-- Performance tuning
+- Full performance tuning and POH matching
 
 ---
 
