@@ -67,32 +67,6 @@
         </table>
     </function>
 
-    <!-- <function name="aero/bi2vel">
-        <quotient>
-            <property>metrics/bw-ft</property>
-            <product>
-                <value>2</value>
-                <max>
-                    <property>velocities/vt-fps</property>
-                    <value>50</value>
-                </max>
-            </product>
-        </quotient>
-    </function>
-
-    <function name="aero/ci2vel">
-        <quotient>
-            <property>metrics/cbarw-ft</property>
-            <product>
-                <value>2</value>
-                <max>
-                    <property>velocities/vt-fps</property>
-                    <value>50</value>
-                </max>
-            </product>
-        </quotient>
-    </function> -->
-
     <!-- Control surface deflections (edit property names if your FCS uses different ones) -->
     <function name="aero/controls/deltae-rad">
         <product>
