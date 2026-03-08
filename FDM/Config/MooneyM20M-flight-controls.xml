@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<flight_control name="Mooney M20M Flight Control">
+
+    <!-- Pitch -->
+    <channel name="Pitch">
+
+        <summer name="fcs/pitch-cmd-sum">
+            <input>fcs/elevator-cmd-norm</input>
+            <input>fcs/pitch-trim-cmd-norm</input>
+            <clipto>
+                <min>-1</min>
+                <max>1</max>
+            </clipto>
+        </summer>
+
+        <aerosurface_scale name="fcs/elevator-pos-rad">
+            <input>fcs/pitch-cmd-sum</input>
+            <domain>
+                <min>-1</min>
+                <max>1</max>
+            </domain>
+            <range>
+                <min>-0.383972</min>
+                <max>0.383972</max>
+            </range>
+            <output>fcs/elevator-pos-rad</output>
+        </aerosurface_scale>
+
+    </channel>
+
+    <!-- Roll -->
+    <channel name="Roll">
+
+        <summer name="fcs/roll-cmd-sum">
+            <input>fcs/aileron-cmd-norm</input>
+            <input>fcs/roll-trim-cmd-norm</input>
+            <clipto>
+                <min>-1</min>
+                <max>1</max>
+            </clipto>
+        </summer>
+
+        <!-- Left aileron -->
+        <aerosurface_scale name="fcs/left-aileron-pos-rad">
+            <input>-fcs/roll-cmd-sum</input>
+            <domain>
+                <min>-1</min>
+                <max>1</max>
+            </domain>
+            <range>
+                <min>-0.235619</min>
+                <max>0.139626</max>
+            </range>
+            <output>fcs/left-aileron-pos-rad</output>
+        </aerosurface_scale>
+
+        <!-- Right aileron -->
+        <aerosurface_scale name="fcs/right-aileron-pos-rad">
+            <input>fcs/roll-cmd-sum</input>
+            <domain>
+                <min>-1</min>
+                <max>1</max>
+            </domain>
+            <range>
+                <min>-0.235619</min>
+                <max>0.139626</max>
+            </range>
+            <output>fcs/right-aileron-pos-rad</output>
+        </aerosurface_scale>
+
+        <!-- Equivalent aileron deflection for current aero model -->
+        <aerosurface_scale name="fcs/aileron-pos-rad">
+            <input>fcs/roll-cmd-sum</input>
+            <domain>
+                <min>-1</min>
+                <max>1</max>
+            </domain>
+            <range>
+                <min>-0.187623</min>
+                <max>0.187623</max>
+            </range>
+            <output>fcs/aileron-pos-rad</output>
+        </aerosurface_scale>
+
+    </channel>
+
+    <!-- Yaw -->
+    <channel name="Yaw">
+
+        <summer name="fcs/yaw-cmd-sum">
+            <input>fcs/rudder-cmd-norm</input>
+            <input>fcs/yaw-trim-cmd-norm</input>
+            <clipto>
+                <min>-1</min>
+                <max>1</max>
+            </clipto>
+        </summer>
+
+        <aerosurface_scale name="fcs/rudder-pos-rad">
+            <input>fcs/yaw-cmd-sum</input>
+            <domain>
+                <min>-1</min>
+                <max>1</max>
+            </domain>
+            <range>
+                <min>-0.410152</min>
+                <max>0.410152</max>
+            </range>
+            <output>fcs/rudder-pos-rad</output>
+        </aerosurface_scale>
+
+    </channel>
+
+    <!-- Flaps -->
+    <channel name="Flaps">
+
+        <aerosurface_scale name="fcs/flap-pos-rad">
+            <input>fcs/flap-cmd-norm</input>
+            <domain>
+                <min>0</min>
+                <max>1</max>
+            </domain>
+            <range>
+                <min>0</min>
+                <max>0.5759586531581288</max> <!-- 33 deg -->
+            </range>
+            <output>fcs/flap-pos-rad</output>
+        </aerosurface_scale>
+
+    </channel>
+
+</flight_control>
