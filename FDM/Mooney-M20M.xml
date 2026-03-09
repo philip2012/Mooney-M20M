@@ -20,4 +20,5 @@
     <mass_balance file="FDM/Config/MooneyM20M-mass-balance" />
     <external_reactions file="FDM/Config/MooneyM20M-external-reactions" />
     <flight_control file="FDM/Config/MooneyM20M-flight-controls" />
+    <propulsion file="FDM/Config/MooneyM20M-propulsion" />
 </fdm_config>

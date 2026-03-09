@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<propulsion>
+    <!-- One piston engine, fed by both wing tanks -->
+    <engine file="FDM/Config/Engines/Lycoming-TIO-540-AF1B">
+        <feed>0</feed>
+        <feed>1</feed>
+
+        <thruster file="FDM/Config/Engines/M20M-Propeller">
+            <location unit="IN">
+                <x>-49.5</x>
+                <y>0.0</y>
+                <z>0.0</z>
+            </location>
+
+            <orient unit="DEG">
+                <roll>0.0</roll>
+                <pitch>0.0</pitch>
+                <yaw>0.0</yaw>
+            </orient>
+
+            <!-- Starter assumptions -->
+            <sense>1</sense>
+            <p_factor>1.0</p_factor>
+        </thruster>
+    </engine>
+
+    <!-- Left wing tank -->
+    <tank type="FUEL">
+        <location unit="IN">
+            <x>49.23</x>
+            <y>-35.0</y>
+            <z>0.0</z>
+        </location>
+        <capacity unit="GAL">44.5</capacity>
+        <contents unit="GAL">44.5</contents>
+    </tank>
+
+    <!-- Right wing tank -->
+    <tank type="FUEL">
+        <location unit="IN">
+            <x>49.23</x>
+            <y>35.0</y>
+            <z>0.0</z>
+        </location>
+        <capacity unit="GAL">44.5</capacity>
+        <contents unit="GAL">44.5</contents>
+    </tank>
+
+    <dump-rate unit="LBS/MIN">0.0</dump-rate>
+    <refuel-rate unit="LBS/MIN">300.0</refuel-rate>
+</propulsion>

@@ -69,32 +69,23 @@
 
     <!-- Control surface deflections (edit property names if your FCS uses different ones) -->
     <function name="aero/controls/deltae-rad">
-        <product>
-            <property>fcs/elevator-cmd-norm</property>
-            <value>0.4363323129985824</value> <!-- 25 deg -->
-        </product>
+        <property>fcs/elevator-pos-rad</property>
     </function>
 
     <function name="aero/controls/deltaa-rad">
-        <product>
-            <property>fcs/aileron-cmd-norm</property>
-            <value>0.3490658503988659</value>
-        </product>
+        <property>fcs/aileron-pos-rad</property>
     </function>
 
     <function name="aero/controls/deltar-rad">
-        <product>
-            <property>fcs/rudder-cmd-norm</property>
-            <value>0.3490658503988659</value> <!-- 20 deg -->
-        </product>
+        <property>fcs/rudder-pos-rad</property>
     </function>
 
     <!-- Flap fraction: assumes full landing is 33 deg per FAA aircraft specification -->
     <function name="aero/flaps/factor33">
-        <product>
-            <property>fcs/flap-cmd-norm</property>
-            <value>1.0</value>
-        </product>
+        <quotient>
+            <property>fcs/flap-pos-rad</property>
+            <value>0.5759586531581288</value>
+        </quotient>
         <clipto>
             <min>0</min>
             <max>1</max>
