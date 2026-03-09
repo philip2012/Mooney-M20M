@@ -32,8 +32,9 @@
             <y>-35.0</y>
             <z>0.0</z>
         </location>
-        <capacity unit="GAL">44.5</capacity>
-        <contents unit="GAL">44.5</contents>
+        <density unit="LBS/GAL">6.0</density>
+        <capacity unit="LBS">267.0</capacity>
+        <contents unit="LBS">267.0</contents>
     </tank>
 
     <!-- Right wing tank -->
@@ -43,8 +44,9 @@
             <y>35.0</y>
             <z>0.0</z>
         </location>
-        <capacity unit="GAL">44.5</capacity>
-        <contents unit="GAL">44.5</contents>
+        <density unit="LBS/GAL">6.0</density>
+        <capacity unit="LBS">267.0</capacity>
+        <contents unit="LBS">267.0</contents>
     </tank>
 
     <dump-rate unit="LBS/MIN">0.0</dump-rate>
