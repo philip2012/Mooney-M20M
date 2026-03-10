@@ -16,11 +16,12 @@ Current state:
 
 - Aircraft structure created
 - JSBSim FDM baseline implemented
-- Metrics, mass balance, aerodynamics, ground reactions, and external reactions added
+- Metrics, mass balance, aerodynamics, ground reactions, external reactions, flight controls, and starter propulsion stack added
 - Aircraft loads successfully in FlightGear
 - Baseline property-binding and control-input issues resolved
 - Placeholder model support
-- Initial parked-state and control sanity checks completed
+- Static FDM sanity checks completed
+- Control-chain sanity checks completed
 
 Partially implemented:
 
@@ -30,7 +31,7 @@ Partially implemented:
 
 Not yet implemented:
 
-- Turbocharged piston engine / propeller modeling
+- Runtime-validated and tuned engine / propeller behavior
 - Full retractable gear system and animation
 - Electrical / fuel systems
 - Cockpit and instruments
