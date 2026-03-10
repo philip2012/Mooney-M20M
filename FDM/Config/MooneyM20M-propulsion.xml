@@ -2,11 +2,11 @@
 
 <propulsion>
     <!-- One piston engine, fed by both wing tanks -->
-    <engine file="FDM/Config/Engines/Lycoming-TIO-540-AF1B">
+    <engine file="Lycoming-TIO-540-AF1B">
         <feed>0</feed>
         <feed>1</feed>
 
-        <thruster file="FDM/Config/Engines/M20M-Propeller">
+        <thruster file="M20M-Propeller">
             <location unit="IN">
                 <x>-49.5</x>
                 <y>0.0</y>
