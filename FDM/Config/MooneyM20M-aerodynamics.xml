@@ -38,9 +38,9 @@
                 -12 -0.80
                 -10 -0.60
                 -5 -0.20
-                0 0.17
-                5 0.59
-                10 1.01
+                0 0.14
+                5 0.54
+                10 0.95
                 13.5 1.29
                 15 1.25
                 20 0.85
@@ -56,9 +56,9 @@
                 -12 -1.00
                 -10 -0.75
                 -5 -0.25
-                0 0.45
-                5 1.02
-                10 1.50
+                0 0.38
+                5 0.94
+                10 1.40
                 12 1.63
                 15 1.40
                 20 0.95
@@ -141,7 +141,7 @@
                 <property>aero/qhat</property>
             </product>
             <product>
-                <value>0.30</value>         <!-- CLde per rad (starter) -->
+                <value>0.22</value>         <!-- CLde per rad (starter) -->
                 <property>aero/controls/deltae-rad</property>
             </product>
         </sum>
@@ -226,17 +226,17 @@
     <!-- Pitch moment coefficient Cm (starter longitudinal stability) -->
     <function name="aero/coefficient/Cm">
         <sum>
-            <value>0.02</value> <!-- Cm0 (trim bias; tune) -->
+            <value>0.006</value> <!-- Cm0 (trim bias; tune) -->
             <product>
                 <value>-1.20</value> <!-- Cmalpha -->
                 <property>aero/alpha-rad</property>
             </product>
             <product>
-                <value>-10.0</value> <!-- Cmq -->
+                <value>-18.0</value> <!-- Cmq -->
                 <property>aero/qhat</property>
             </product>
             <product>
-                <value>-1.20</value> <!-- Cmde per rad -->
+                <value>-0.95</value> <!-- Cmde per rad -->
                 <property>aero/controls/deltae-rad</property>
             </product>
         </sum>

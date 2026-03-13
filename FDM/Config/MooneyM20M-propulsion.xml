@@ -21,7 +21,7 @@
 
             <!-- Starter assumptions -->
             <sense>1</sense>
-            <p_factor>1.0</p_factor>
+            <p_factor>0.3</p_factor>
         </thruster>
     </engine>
 
