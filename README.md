@@ -74,3 +74,9 @@ Clone into your FlightGear `Aircraft` directory or any desired place：
 cd FlightGear/Aircraft
 git clone https://github.com/philip2012/Mooney-M20M.git
 ```
+
+---
+
+## License
+
+This project is licensed under the GNU General Public License v2.0 or later.
