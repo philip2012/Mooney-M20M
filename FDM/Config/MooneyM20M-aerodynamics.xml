@@ -255,7 +255,7 @@ the Free Software Foundation; either version 2 of the License, or
     <function name="aero/coefficient/Cn">
         <sum>
             <product>
-                <value>0.08</value> <!-- Cnbeta -->
+                <value>0.12</value> <!-- Cnbeta -->
                 <property>aero/beta-rad</property>
             </product>
             <product>
@@ -263,7 +263,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <property>aero/phat</property>
             </product>
             <product>
-                <value>-0.22</value> <!-- Cnr -->
+                <value>-0.38</value> <!-- Cnr -->
                 <property>aero/rhat</property>
             </product>
             <product>
