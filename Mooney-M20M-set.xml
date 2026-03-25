@@ -72,6 +72,30 @@ the Free Software Foundation; either version 2 of the License, or
         <tag n="4">turbocharged</tag>
     </tags>
 
+    <input>
+        <keyboard>
+            <key n="102">
+                <name>f</name>
+                <desc>Set throttle to full</desc>
+                <binding>
+                    <command>property-assign</command>
+                    <property>/controls/engines/engine/throttle</property>
+                    <value type="double">1.0</value>
+                </binding>
+            </key>
+
+            <key n="101">
+                <name>e</name>
+                <desc>Set throttle to idle</desc>
+                <binding>
+                    <command>property-assign</command>
+                    <property>/controls/engines/engine/throttle</property>
+                    <value type="double">0.0</value>
+                </binding>
+            </key>
+        </keyboard>
+    </input>
+
     <model>
         <path>Models/Mooney-M20M.xml</path>
     </model>
