@@ -64,6 +64,10 @@ Not yet implemented:
 - FlightGear Wiki Page  
   <https://wiki.flightgear.org/Mooney_M20M_Bravo>
 
+- **Special mention**
+  We at BravoWorks have just launched a Discord server for our hangar. Check it out!
+  <https://discord.gg/xeQa5eT4>
+
 ---
 
 ## Installation
