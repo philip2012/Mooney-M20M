@@ -42,4 +42,29 @@ the Free Software Foundation; either version 2 of the License, or
             <output>systems/airframe-controls/flaps/selected-deg</output>
         </switch>
     </channel>
+
+    <!-- gear selector:
+         0 = UP
+         1 = DOWN
+    -->
+    <property value="1">systems/airframe-controls/gear/selector</property>
+    <property value="1">systems/airframe-controls/gear/selected</property>
+
+    <channel name="gear-selector">
+        <switch name="airframe-controls/gear-target">
+            <default value="0" />
+            <test value="1">
+                systems/airframe-controls/gear/selector == 1
+            </test>
+            <output>/controls/gear/gear-down</output>
+        </switch>
+
+        <switch name="airframe-controls/gear-selected">
+            <default value="0" />
+            <test value="1">
+                systems/airframe-controls/gear/selector == 1
+            </test>
+            <output>systems/airframe-controls/gear/selected</output>
+        </switch>
+    </channel>
 </system>

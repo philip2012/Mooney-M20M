@@ -117,6 +117,17 @@ the Free Software Foundation; either version 2 of the License, or
                     <max>2</max>
                 </binding>
             </key>
+
+            <key n="103">
+                <name>g</name>
+                <desc>Toggle gear selector</desc>
+                <binding>
+                    <command>property-cycle</command>
+                    <property>/fdm/jsbsim/systems/airframe-controls/gear/selector</property>
+                    <value>1</value>
+                    <value>0</value>
+                </binding>
+            </key>
         </keyboard>
     </input>
 
