@@ -72,7 +72,7 @@ the Free Software Foundation; either version 2 of the License, or
         <tag n="4">turbocharged</tag>
     </tags>
 
-    <input>
+    <input n="0">
         <keyboard>
             <key n="102">
                 <name>f</name>
@@ -91,6 +91,30 @@ the Free Software Foundation; either version 2 of the License, or
                     <command>property-assign</command>
                     <property>/controls/engines/engine/throttle</property>
                     <value type="double">0.0</value>
+                </binding>
+            </key>
+
+            <key n="91">
+                <name>[</name>
+                <desc>Flaps up one detent</desc>
+                <binding>
+                    <command>property-adjust</command>
+                    <property>/fdm/jsbsim/systems/airframe-controls/flaps/selector</property>
+                    <step>-1</step>
+                    <min>0</min>
+                    <max>2</max>
+                </binding>
+            </key>
+
+            <key n="93">
+                <name>]</name>
+                <desc>Flaps down one detent</desc>
+                <binding>
+                    <command>property-adjust</command>
+                    <property>/fdm/jsbsim/systems/airframe-controls/flaps/selector</property>
+                    <step>1</step>
+                    <min>0</min>
+                    <max>2</max>
                 </binding>
             </key>
         </keyboard>
