@@ -19,6 +19,12 @@ the Free Software Foundation; either version 2 of the License, or
     <property value="0">systems/airframe-controls/flaps/selector</property>
     <property value="0">systems/airframe-controls/flaps/selected-deg</property>
 
+    <!-- flaps state properties-->
+    <property value="0.0">systems/airframe-controls/flaps/target-norm</property>
+    <property value="0.0">systems/airframe-controls/flaps/actual-norm</property>
+    <property value="0">systems/airframe-controls/flaps/in-transit</property>
+    <property value="0">systems/airframe-controls/flaps/actual-deg</property>
+
     <channel name="flap-detents">
         <switch name="airframe-controls/flap-target-norm">
             <default value="0.0" />
@@ -28,7 +34,7 @@ the Free Software Foundation; either version 2 of the License, or
             <test value="1.0">
                 systems/airframe-controls/flaps/selector == 2
             </test>
-            <output>fcs/flap-cmd-norm</output>
+            <output>systems/airframe-controls/flaps/target-norm</output>
         </switch>
 
         <switch name="airframe-controls/flap-selected-deg">
@@ -42,6 +48,61 @@ the Free Software Foundation; either version 2 of the License, or
             <output>systems/airframe-controls/flaps/selected-deg</output>
         </switch>
     </channel>
+
+    <channel name="flap-actuation">
+        <kinematic name="airframe-controls/flap-travel">
+            <input>systems/airframe-controls/flaps/target-norm</input>
+            <noscale />
+            <traverse>
+                <setting>
+                    <position>0.0</position>
+                    <time>0.0</time>
+                </setting>
+                <setting>
+                    <position>0.303030303030303</position>
+                    <time>1.5</time>
+                </setting>
+                <setting>
+                    <position>1.0</position>
+                    <time>4.0</time>
+                </setting>
+            </traverse>
+            <output>systems/airframe-controls/flaps/actual-norm</output>
+        </kinematic>
+
+        <pure_gain name="airframe-controls/flap-actual-to-fcs">
+            <input>systems/airframe-controls/flaps/actual-norm</input>
+            <gain>1.0</gain>
+            <output>fcs/flap-cmd-norm</output>
+        </pure_gain>
+
+        <pure_gain name="airframe-controls/flap-actual-deg">
+            <input>systems/airframe-controls/flaps/actual-norm</input>
+            <gain>33.0</gain>
+            <output>systems/airframe-controls/flaps/actual-deg</output>
+        </pure_gain>
+    </channel>
+
+    <channel name="flap-state">
+        <switch name="airframe-controls/flap-in-transit">
+            <default value="1" />
+            <test value="0" logic="AND">
+                systems/airframe-controls/flaps/selector == 0
+                systems/airframe-controls/flaps/actual-norm &lt; 0.01
+            </test>
+            <test value="0" logic="AND">
+                systems/airframe-controls/flaps/selector == 1
+                systems/airframe-controls/flaps/actual-norm > 0.29
+                systems/airframe-controls/flaps/actual-norm &lt; 0.31
+            </test>
+            <test value="0" logic="AND">
+                systems/airframe-controls/flaps/selector == 2
+                systems/airframe-controls/flaps/actual-norm > 0.99
+            </test>
+            <output>systems/airframe-controls/flaps/in-transit</output>
+        </switch>
+    </channel>
+
 
     <!-- gear selector:
          0 = UP
