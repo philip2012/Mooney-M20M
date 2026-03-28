@@ -111,13 +111,49 @@ the Free Software Foundation; either version 2 of the License, or
     <property value="1">systems/airframe-controls/gear/selector</property>
     <property value="1">systems/airframe-controls/gear/selected</property>
 
+    <!-- gear state properties-->
+    <property value="1.0">systems/airframe-controls/gear/target-norm</property>
+    <property value="1.0">systems/airframe-controls/gear/actual-norm</property>
+    <property value="0">systems/airframe-controls/gear/in-transit</property>
+    <property value="0">systems/airframe-controls/gear/up-locked</property>
+    <property value="1">systems/airframe-controls/gear/down-locked</property>
+    <property value="1">systems/airframe-controls/gear/handle</property>
+    <property value="1">systems/airframe-controls/gear/retract-allowed</property>
+
     <channel name="gear-selector">
-        <switch name="airframe-controls/gear-target">
-            <default value="0" />
+        <switch name="airframe-controls/gear-retract-allowed">
+            <default value="1" />
+            <test value="0" logic="OR">
+                /gear/gear[0]/wow == 1
+                /gear/gear[1]/wow == 1
+                /gear/gear[2]/wow == 1
+            </test>
+            <output>systems/airframe-controls/gear/retract-allowed</output>
+        </switch>
+
+        <switch name="airframe-controls/gear-selector-accepted">
+            <default value="1" />
+
+            <!-- allow UP only if handle is UP and all WOW are false -->
+            <test value="0" logic="AND">
+                systems/airframe-controls/gear/handle == 0
+                systems/airframe-controls/gear/retract-allowed == 1
+            </test>
+
+            <!-- otherwise force selector DOWN -->
             <test value="1">
+                systems/airframe-controls/gear/handle == 1
+            </test>
+
+            <output>systems/airframe-controls/gear/selector</output>
+        </switch>
+
+        <switch name="airframe-controls/gear-target">
+            <default value="0.0" />
+            <test value="1.0">
                 systems/airframe-controls/gear/selector == 1
             </test>
-            <output>/controls/gear/gear-down</output>
+            <output>systems/airframe-controls/gear/target-norm</output>
         </switch>
 
         <switch name="airframe-controls/gear-selected">
@@ -126,6 +162,70 @@ the Free Software Foundation; either version 2 of the License, or
                 systems/airframe-controls/gear/selector == 1
             </test>
             <output>systems/airframe-controls/gear/selected</output>
+        </switch>
+    </channel>
+
+    <channel name="gear-actuation">
+        <pure_gain name="airframe-controls/gear-target-to-command">
+            <input>systems/airframe-controls/gear/target-norm</input>
+            <gain>1.0</gain>
+            <output>gear/gear-cmd-norm</output>
+        </pure_gain>
+
+        <kinematic name="airframe-controls/gear-travel">
+            <input>gear/gear-cmd-norm</input>
+            <noscale />
+            <traverse>
+                <setting>
+                    <position>0.0</position>
+                    <time>0.0</time>
+                </setting>
+                <setting>
+                    <position>1.0</position>
+                    <time>6.0</time>
+                </setting>
+            </traverse>
+            <output>gear/gear-pos-norm</output>
+        </kinematic>
+
+        <pure_gain name="airframe-controls/gear-pos-to-actual">
+            <input>gear/gear-pos-norm</input>
+            <gain>1.0</gain>
+            <output>systems/airframe-controls/gear/actual-norm</output>
+        </pure_gain>
+    </channel>
+
+    <channel name="gear-state">
+        <switch name="airframe-controls/gear-in-transit">
+            <default value="1" />
+
+            <test value="0" logic="AND"> systems/airframe-controls/gear/selector == 0
+                systems/airframe-controls/gear/actual-norm &lt; 0.01
+            </test>
+
+            <test value="0" logic="AND">
+                systems/airframe-controls/gear/selector == 1
+                systems/airframe-controls/gear/actual-norm > 0.99
+            </test>
+
+            <output>systems/airframe-controls/gear/in-transit</output>
+        </switch>
+
+        <switch name="airframe-controls/gear-up-locked">
+            <default value="0" />
+            <test value="1" logic="AND"> systems/airframe-controls/gear/selector == 0
+                systems/airframe-controls/gear/actual-norm &lt; 0.01
+            </test>
+            <output>systems/airframe-controls/gear/up-locked</output>
+        </switch>
+
+        <switch name="airframe-controls/gear-down-locked">
+            <default value="0" />
+            <test value="1" logic="AND">
+                systems/airframe-controls/gear/selector == 1
+                systems/airframe-controls/gear/actual-norm > 0.99
+            </test>
+            <output>systems/airframe-controls/gear/down-locked</output>
         </switch>
     </channel>
 </system>
