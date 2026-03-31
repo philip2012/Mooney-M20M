@@ -62,6 +62,13 @@ the Free Software Foundation; either version 2 of the License, or
             <support>https://github.com/philip2012/Mooney-M20M/issues</support>
             <home-page>https://wiki.flightgear.org/Mooney_M20M_Bravo</home-page>
         </urls>
+
+        <systems>
+            <property-rule n="100">
+                <name>Starter Bridge</name>
+                <path>Systems/starter-bridge.xml</path>
+            </property-rule>
+        </systems>
     </sim>
 
     <tags>
@@ -79,7 +86,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Set throttle to full</desc>
                 <binding>
                     <command>property-assign</command>
-                    <property>/controls/engines/engine/throttle</property>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm</property>
                     <value type="double">1.0</value>
                 </binding>
             </key>
@@ -89,7 +96,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Set throttle to idle</desc>
                 <binding>
                     <command>property-assign</command>
-                    <property>/controls/engines/engine/throttle</property>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm</property>
                     <value type="double">0.0</value>
                 </binding>
             </key>
@@ -126,6 +133,73 @@ the Free Software Foundation; either version 2 of the License, or
                     <property>/fdm/jsbsim/systems/airframe-controls/gear/handle</property>
                     <value>1</value>
                     <value>0</value>
+                </binding>
+            </key>
+
+            <key n="115">
+                <name>s</name>
+                <desc>Hold starter through local powerplant system</desc>
+                <binding>
+                    <command>property-assign</command>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter</property>
+                    <value type="int">1</value>
+                </binding>
+                <mod-up>
+                    <binding>
+                        <command>property-assign</command>
+                        <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter</property>
+                        <value type="int">0</value>
+                    </binding>
+                </mod-up>
+            </key>
+
+            <key n="109">
+                <name>m</name>
+                <desc>Mixture richer (local)</desc>
+                <repeatable type="bool">true</repeatable>
+                <binding>
+                    <command>property-adjust</command>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm</property>
+                    <step type="double">0.05</step>
+                    <min type="double">0.0</min>
+                    <max type="double">1.0</max>
+                </binding>
+            </key>
+
+            <key n="77">
+                <name>M</name>
+                <desc>Mixture leaner (local)</desc>
+                <repeatable type="bool">true</repeatable>
+                <binding>
+                    <command>property-adjust</command>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm</property>
+                    <step type="double">-0.05</step>
+                    <min type="double">0.0</min>
+                    <max type="double">1.0</max>
+                </binding>
+            </key>
+
+            <key n="111">
+                <name>o</name>
+                <desc>Magnetos up one position (local)</desc>
+                <binding>
+                    <command>property-adjust</command>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/magnetos</property>
+                    <step type="int">1</step>
+                    <min type="int">0</min>
+                    <max type="int">3</max>
+                </binding>
+            </key>
+
+            <key n="79">
+                <name>O</name>
+                <desc>Magnetos down one position (local)</desc>
+                <binding>
+                    <command>property-adjust</command>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/magnetos</property>
+                    <step type="int">-1</step>
+                    <min type="int">0</min>
+                    <max type="int">3</max>
                 </binding>
             </key>
         </keyboard>

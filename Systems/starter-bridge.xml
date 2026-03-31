@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PropertyList>
+    <logic>
+        <name>starter-bool-bridge</name>
+        <input>
+            <property>/fdm/jsbsim/systems/powerplant-controls/engine/states/start-allowed</property>
+        </input>
+        <output>/controls/engines/engine[0]/starter</output>
+    </logic>
+</PropertyList>
