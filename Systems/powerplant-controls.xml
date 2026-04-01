@@ -23,6 +23,19 @@ the Free Software Foundation; either version 2 of the License, or
     <property value="0">systems/powerplant-controls/engine/states/fuel-enabled</property>
     <property value="0">systems/powerplant-controls/engine/states/start-allowed</property>
 
+    <property value="0">systems/powerplant-controls/electrical/switches/battery-master</property>
+    <property value="0">systems/powerplant-controls/electrical/states/power-available</property>
+
+    <channel name="electrical-logic">
+        <switch name="powerplant-controls/power-available">
+            <default value="0" />
+            <test value="1">
+                systems/powerplant-controls/electrical/switches/battery-master == 1
+            </test>
+            <output>systems/powerplant-controls/electrical/states/power-available</output>
+        </switch>
+    </channel>
+
     <channel name="ignition-logic">
         <switch name="powerplant-controls/ignition-enabled">
             <default value="0" />
@@ -57,6 +70,7 @@ the Free Software Foundation; either version 2 of the License, or
                 systems/powerplant-controls/engine/states/starter-engaged == 1
                 systems/powerplant-controls/engine/states/ignition-enabled == 1
                 systems/powerplant-controls/engine/states/fuel-enabled == 1
+                systems/powerplant-controls/electrical/states/power-available == 1
             </test>
             <output>systems/powerplant-controls/engine/states/start-allowed</output>
         </switch>
