@@ -5,6 +5,9 @@
         <name>starter-bool-bridge</name>
         <input>
             <property>/fdm/jsbsim/systems/powerplant-controls/engine/states/start-allowed</property>
+            <not>
+                <property>/engines/engine[0]/running</property>
+            </not>
         </input>
         <output>/controls/engines/engine[0]/starter</output>
     </logic>
