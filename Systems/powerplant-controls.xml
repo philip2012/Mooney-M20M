@@ -26,11 +26,26 @@ the Free Software Foundation; either version 2 of the License, or
     <property value="0">systems/powerplant-controls/electrical/switches/battery-master</property>
     <property value="0">systems/powerplant-controls/electrical/states/power-available</property>
 
+    <property value="0">systems/powerplant-controls/electrical/switches/alternator</property>
+    <property value="0">systems/powerplant-controls/electrical/states/generation-available</property>
+
+    <channel name="generation-logic">
+        <switch name="powerplant-controls/generation-available">
+            <default value="0" />
+            <test value="1" logic="AND">
+                systems/powerplant-controls/electrical/switches/alternator == 1
+                /engines/engine[0]/running == 1
+            </test>
+            <output>systems/powerplant-controls/electrical/states/generation-available</output>
+        </switch>
+    </channel>
+
     <channel name="electrical-logic">
         <switch name="powerplant-controls/power-available">
             <default value="0" />
-            <test value="1">
+            <test value="1" logic="OR">
                 systems/powerplant-controls/electrical/switches/battery-master == 1
+                systems/powerplant-controls/electrical/states/generation-available == 1
             </test>
             <output>systems/powerplant-controls/electrical/states/power-available</output>
         </switch>
