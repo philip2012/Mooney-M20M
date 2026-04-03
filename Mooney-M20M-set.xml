@@ -62,7 +62,8 @@ the Free Software Foundation; either version 2 of the License, or
             <support>https://github.com/philip2012/Mooney-M20M/issues</support>
             <home-page>https://wiki.flightgear.org/Mooney_M20M_Bravo</home-page>
         </urls>
-
+        
+        <!-- bridge properties together manually, jsbsim don't support outputting local properties directly to global property for starter-->
         <systems>
             <property-rule n="100">
                 <name>Starter Bridge</name>
@@ -70,7 +71,9 @@ the Free Software Foundation; either version 2 of the License, or
             </property-rule>
         </systems>
 
+        <!-- Aircraft states-->
         <state include="States/parked-overlay.xml" n="0" />
+        <state include="States/ready-to-start-overlay.xml" n="1" />
     </sim>
 
     <tags>
