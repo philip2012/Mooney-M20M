@@ -240,6 +240,17 @@ the Free Software Foundation; either version 2 of the License, or
                 </binding>
             </key>
 
+            <key n="89">
+                <name>Y</name>
+                <desc>Toggle alternator switch (local)</desc>
+                <binding>
+                    <command>property-cycle</command>
+                    <property>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/alternator</property>
+                    <value type="int">1</value>
+                    <value type="int">0</value>
+                </binding>
+            </key>
+
             <key n="57">
                 <name>9</name>
                 <desc>Increase throttle (local)</desc>
