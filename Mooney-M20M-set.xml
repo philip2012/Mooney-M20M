@@ -69,6 +69,8 @@ the Free Software Foundation; either version 2 of the License, or
                 <path>Systems/starter-bridge.xml</path>
             </property-rule>
         </systems>
+
+        <state include="States/parked-overlay.xml" n="0" />
     </sim>
 
     <tags>
