@@ -35,7 +35,7 @@ the Free Software Foundation; either version 2 of the License, or
     <starter-torque>120.0</starter-torque>
     <starter-rpm>900.0</starter-rpm>
 
-    <bsfc unit="LBS/HP*HR">0.45</bsfc>
+    <bsfc unit="LBS/HP*HR">0.46875</bsfc>
     <volumetric-efficiency>0.90</volumetric-efficiency>
 
     <!-- Simple boosted-engine starter model -->
