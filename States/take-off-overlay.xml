@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Copyright (C) 2026 Philips Nguyen
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+-->
+
+<PropertyList>
+    <name type="string">take-off</name>
+    <readable-name type="string">Take-off</readable-name>
+    <description type="string">Configured for take-off with engine started automatically.</description>
+
+    <overlay>
+        <fdm>
+            <jsbsim>
+                <systems>
+                    <powerplant-controls>
+                        <engine>
+                            <handles>
+                                <throttle-norm type="double">0.0</throttle-norm>
+                                <mixture-norm type="double">1.0</mixture-norm>
+                                <prop-norm type="double">1.0</prop-norm>
+                            </handles>
+
+                            <switches>
+                                <starter type="int">0</starter>
+                                <magnetos type="int">3</magnetos>
+                            </switches>
+                        </engine>
+
+                        <electrical>
+                            <switches>
+                                <battery-master type="int">1</battery-master>
+                                <alternator type="int">1</alternator>
+                            </switches>
+                        </electrical>
+                    </powerplant-controls>
+
+                    <airframe-controls>
+                        <flaps>
+                            <selector type="int">1</selector>
+                        </flaps>
+                    </airframe-controls>
+                </systems>
+            </jsbsim>
+        </fdm>
+    </overlay>
+</PropertyList>
