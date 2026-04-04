@@ -18,7 +18,7 @@ the Free Software Foundation; either version 2 of the License, or
         </location>
         <static_friction>0.80</static_friction>
         <dynamic_friction>0.55</dynamic_friction>
-        <rolling_friction>0.020</rolling_friction>
+        <rolling_friction>0.025</rolling_friction>
 
         <spring_coeff unit="LBS/FT">8000</spring_coeff>
         <damping_coeff unit="LBS/FT/SEC">1600</damping_coeff>
@@ -38,7 +38,7 @@ the Free Software Foundation; either version 2 of the License, or
 
         <static_friction>0.80</static_friction>
         <dynamic_friction>0.55</dynamic_friction>
-        <rolling_friction>0.020</rolling_friction>
+        <rolling_friction>0.025</rolling_friction>
 
         <spring_coeff unit="LBS/FT">18000</spring_coeff>
         <damping_coeff unit="LBS/FT/SEC">3000</damping_coeff>
@@ -58,7 +58,7 @@ the Free Software Foundation; either version 2 of the License, or
 
         <static_friction>0.80</static_friction>
         <dynamic_friction>0.55</dynamic_friction>
-        <rolling_friction>0.020</rolling_friction>
+        <rolling_friction>0.025</rolling_friction>
 
         <spring_coeff unit="LBS/FT">18000</spring_coeff>
         <damping_coeff unit="LBS/FT/SEC">3000</damping_coeff>
