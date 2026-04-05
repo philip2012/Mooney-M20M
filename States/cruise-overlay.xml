@@ -12,7 +12,8 @@ the Free Software Foundation; either version 2 of the License, or
 <PropertyList>
     <name type="string">cruise</name>
     <readable-name type="string">Cruise</readable-name>
-    <description type="string">Configured for cruising altitude with changes to power, propeller pitch.</description>
+    <description type="string">Configured for cruising altitude with changes to power, propeller
+        pitch.</description>
 
     <overlay>
         <fdm>
@@ -22,7 +23,7 @@ the Free Software Foundation; either version 2 of the License, or
                         <engine>
                             <handles>
                                 <throttle-norm type="double">0.85</throttle-norm>
-                                <mixture-norm type="double">1.0</mixture-norm>
+                                <mixture-norm type="double">0.88</mixture-norm>
                                 <prop-norm type="double">0.78</prop-norm>
                             </handles>
 
