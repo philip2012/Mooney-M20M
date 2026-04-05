@@ -33,6 +33,14 @@ state_init.finalize_running_state = func(state_name) {
         # Ensure take-off flaps are set as part of state finalization.
         # Selector 1 is the equivalent to 10 degree detent.
         setprop("/fdm/jsbsim/systems/airframe-controls/flaps/selector", 1);
+    } elsif (state_name == "cruise") {
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.85);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 0.88);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 0.78);
+    } elsif (state_name == "approach") {
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
     }
 };
 
@@ -45,9 +53,21 @@ state_init.poll_until_running = func(state_name, remaining) {
 
     if (remaining <= 0) {
         # Give up cleanly instead of leaving the starter held forever.
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
-        setprop("/controls/gears/brake-parking", 0);
+        if (state_name == "take-off") {
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
+            setprop("/controls/gears/brake-parking", 0);
+        } elsif (state_name == "cruise") {
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.85);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 0.88);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 0.78);
+        } elsif (state_name == "approach") {
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
+        }
         state_init.active = 0;
         return;
     }
@@ -75,6 +95,10 @@ state_init.arm_running_state = func(state_name) {
     if (state_name == "take-off") {
         setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.12);
         setprop("/controls/gears/brake-parking", 1);
+    } elsif (state_name == "cruise" or state_name == "approach") {     # For cruise and approach, rich mixture and fine pitch is good to ensure engine starts
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.12);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
     }
 
     # Runtime part only. Static setup belongs in the overlay.
