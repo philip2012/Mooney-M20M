@@ -68,7 +68,7 @@ Not yet implemented:
 
   We at BravoWorks have just launched a Discord server for our hangar. Check it out!
 
-  <https://discord.gg/xeQa5eT4>
+  <https://discord.gg/HxRep9yQU2>
 
 ---
 
