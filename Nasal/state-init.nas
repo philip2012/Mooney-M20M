@@ -13,7 +13,7 @@ var state_init = {
 
 state_init.requires_running = func(state_name) {
     return state_name == "take-off"
-        or state_name == "cruise"
+        # or state_name == "cruise"
         or state_name == "approach";
 };
 
@@ -33,10 +33,6 @@ state_init.finalize_running_state = func(state_name) {
         # Ensure take-off flaps are set as part of state finalization.
         # Selector 1 is the equivalent to 10 degree detent.
         setprop("/fdm/jsbsim/systems/airframe-controls/flaps/selector", 1);
-    } elsif (state_name == "cruise") {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.85);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 0.88);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 0.78);
     } elsif (state_name == "approach") {
         setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
         setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
@@ -44,10 +40,41 @@ state_init.finalize_running_state = func(state_name) {
     }
 };
 
-state_init.poll_until_running = func(state_name, remaining) {
-    if (getprop("/engines/engine[0]/running", 0) == 1) {
+state_init.poll_until_stable_running = func(state_name, remaining) {
+    if (getprop("/engines/engine[0]/running", 0) == 1 and getprop("/engines/engine[0]/rpm", 0) >= 700) {
         state_init.finalize_running_state(state_name);
         state_init.active = 0;
+        return;
+    }
+
+    if (remaining <= 0) {
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+
+        if (state_name == "take-off") {
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
+            setprop("/controls/gears/brake-parking", 0);
+        } elsif (state_name == "approach") {
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
+            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
+        }
+
+        state_init.active = 0;
+        return;
+    }
+
+    settimer(func {
+        state_init.poll_until_stable_running(state_name, remaining - 1);
+    }, 0.1);
+};
+
+state_init.poll_until_running = func(state_name, remaining) {
+    if (getprop("/engines/engine[0]/running", 0) == 1) {
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+
+        settimer(func(){
+            state_init.poll_until_stable_running(state_name, 20);
+        }, 0.1);
         return;
     }
 
@@ -58,10 +85,6 @@ state_init.poll_until_running = func(state_name, remaining) {
         if (state_name == "take-off") {
             setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
             setprop("/controls/gears/brake-parking", 0);
-        } elsif (state_name == "cruise") {
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.85);
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 0.88);
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 0.78);
         } elsif (state_name == "approach") {
             setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
             setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
@@ -92,10 +115,10 @@ state_init.arm_running_state = func(state_name) {
 
     # if the aircraft state is for take off, start the engine by adding a bit of throttle and set parking brake so it doesn't drift
     if (state_name == "take-off") {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.12);
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.2);
         setprop("/controls/gears/brake-parking", 1);
-    } elsif (state_name == "cruise" or state_name == "approach") {     # For cruise and approach, rich mixture and fine pitch is good to ensure engine starts
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.12);
+    } elsif (state_name == "approach") {
+        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.3);
         setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
         setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
     }

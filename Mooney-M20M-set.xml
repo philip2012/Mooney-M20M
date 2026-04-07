@@ -78,7 +78,7 @@ the Free Software Foundation; either version 2 of the License, or
         <state include="States/parked-overlay.xml" n="0" />
         <state include="States/ready-to-start-overlay.xml" n="1" />
         <state include="States/take-off-overlay.xml" n="2" />
-        <state include="States/cruise-overlay.xml" n="3" />
+        <!-- <state include="States/cruise-overlay.xml" n="3" /> -->
         <state include="States/approach-overlay.xml" n="4" />
     </sim>
 
