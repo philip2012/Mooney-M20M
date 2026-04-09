@@ -35,8 +35,8 @@ the Free Software Foundation; either version 2 of the License, or
         <variant-of>Mooney M20</variant-of>
         <status>alpha</status>
         <rating>
-            <FDM>0</FDM>
-            <systems>0</systems>
+            <FDM>1</FDM>
+            <systems>2</systems>
             <cockpit>0</cockpit>
             <model>0</model>
         </rating>
