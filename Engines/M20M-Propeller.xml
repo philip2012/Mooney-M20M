@@ -52,7 +52,7 @@ the Free Software Foundation; either version 2 of the License, or
 
     <!-- Leave neutral for now; tune only if needed -->
     <ct_factor>1.15</ct_factor>
-    <cp_factor>1.0</cp_factor>
+    <cp_factor>1.25</cp_factor>
 
     <!--
         C_THRUST and C_POWER are starter generic curves vs advance ratio J.

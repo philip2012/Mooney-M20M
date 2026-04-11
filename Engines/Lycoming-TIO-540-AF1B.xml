@@ -11,7 +11,7 @@ the Free Software Foundation; either version 2 of the License, or
 
 <piston_engine name="Lycoming TIO-540-AF1B">
     <!-- Mooney M20M Bravo / AOPA-confirmed baseline -->
-    <minmp unit="INHG">10.0</minmp>
+    <minmp unit="INHG">7.5</minmp>
     <maxmp unit="INHG">38.0</maxmp>
 
     <idlerpm>700</idlerpm>
@@ -32,7 +32,7 @@ the Free Software Foundation; either version 2 of the License, or
     <cooling-factor>1.0</cooling-factor>
     <man-press-lag>0.2</man-press-lag>
 
-    <starter-torque>120.0</starter-torque>
+    <starter-torque>160.0</starter-torque>
     <starter-rpm>900.0</starter-rpm>
 
     <bsfc unit="LBS/HP*HR">0.46875</bsfc>
@@ -40,13 +40,14 @@ the Free Software Foundation; either version 2 of the License, or
 
     <!-- Simple boosted-engine starter model -->
     <numboostspeeds>1</numboostspeeds>
-    <boostoverride>1</boostoverride>
+    <boostoverride>0</boostoverride>
     <boostmanual>0</boostmanual>
     <boost-loss-factor>1.16</boost-loss-factor>
 
     <!-- Starter turbo assumptions: tune later from POH/manifold-pressure behavior -->
-    <ratedboost1 unit="INHG">38.0</ratedboost1>
+    <ratedboost1 unit="INHG">8.1</ratedboost1>
+    <ratedpower1 unit="HP">270</ratedpower1>
     <ratedrpm1>2575</ratedrpm1>
     <ratedaltitude1 unit="FT">20000</ratedaltitude1>
-    <takeoffboost unit="INHG">38.0</takeoffboost>
+    <takeoffboost unit="INHG">8.1</takeoffboost>
 </piston_engine>
