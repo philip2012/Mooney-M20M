@@ -4,7 +4,7 @@ Work-in-progress Mooney M20M Bravo for FlightGear.
 
 The Mooney M20M Bravo is a high-performance, turbocharged, retractable-gear four-seat piston aircraft from Mooney’s long-body M20 family. With cruise speeds exceeding 200 KTAS and service ceilings up to FL250, it represents one of the fastest certified piston singles ever produced.
 
-This project aims to bring a realistic, JSBSim-based Mooney Bravo to FlightGear with accurate performance, systems, and cockpit modeling.
+This project aims to bring a JSBSim-based Mooney Bravo to FlightGear with progressively improved flight modeling, systems logic, and cockpit modeling.
 
 ---
 
@@ -16,7 +16,7 @@ Current state:
 
 - Aircraft structure created
 - JSBSim FDM baseline implemented
-- Metrics, mass balance, aerodynamics, ground reactions, external reactions, flight controls, and starter propulsion stack added
+- Metrics, mass balance, aerodynamics, ground reactions, external reactions, flight controls, and propulsion/control-system baseline added
 - Aircraft loads successfully in FlightGear
 - Baseline property-binding and control-input issues resolved
 - Placeholder model support
@@ -32,8 +32,8 @@ Partially implemented:
 Not yet implemented:
 
 - Runtime-validated and tuned engine / propeller behavior
-- Full retractable gear system and animation
-- Electrical / fuel systems
+- Full retractable gear system animation and final polish
+- Full electrical / fuel systems
 - Cockpit and instruments
 - Full performance tuning and POH matching
 
@@ -74,7 +74,7 @@ Not yet implemented:
 
 ## Installation
 
-Clone into your FlightGear `Aircraft` directory or any desired place：
+Clone into your FlightGear `Aircraft` directory or any desired place:
 
 ```bash
 cd FlightGear/Aircraft
