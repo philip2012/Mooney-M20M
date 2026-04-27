@@ -4,49 +4,78 @@ Work-in-progress Mooney M20M Bravo for FlightGear.
 
 The Mooney M20M Bravo is a high-performance, turbocharged, retractable-gear four-seat piston aircraft from Mooney’s long-body M20 family. With cruise speeds exceeding 200 KTAS and service ceilings up to FL250, it represents one of the fastest certified piston singles ever produced.
 
-This project aims to bring a JSBSim-based Mooney Bravo to FlightGear with progressively improved flight modeling, systems logic, and cockpit modeling.
+This project aims to bring a JSBSim-based Mooney Bravo to FlightGear with progressively improved flight modeling, systems logic, cockpit functionality, and performance behavior.
 
 ---
 
 ## Project Status
 
-### Alpha — early development
+### Alpha — active FDM and systems development
 
 Current state:
 
 - Aircraft structure created
-- JSBSim FDM baseline implemented
-- Metrics, mass balance, aerodynamics, ground reactions, external reactions, flight controls, and propulsion/control-system baseline added
 - Aircraft loads successfully in FlightGear
+- JSBSim FDM baseline implemented
+- Metrics, mass balance, aerodynamics, flight controls, propulsion, ground reactions, and external reactions added
 - Baseline property-binding and control-input issues resolved
-- Placeholder model support
+- 3D model integrated
 - Static FDM sanity checks completed
 - Control-chain sanity checks completed
+- Baseline retractable-gear FDM behavior implemented
+- Constant-speed propeller behavior stabilized for climb testing
+- Turbocharged high-altitude climb behavior tested up to FL250
+- FL250 ceiling behavior validated with low remaining climb rate near service ceiling
+- Pacejka-based tire model added for improved ground handling behavior
+- Development progress is tracked through incremental Git commits
 
 Partially implemented:
 
 - Mooney-based geometry and reference values
-- Baseline retractable-gear FDM behavior
 - Early aerodynamic coefficient model
+- Engine and propeller tuning outside the validated climb envelope
+- Cruise, descent, and stall performance validation
+- Retractable landing gear behavior
+- Systems scaffolding
+- External model and visual integration
 
 Not yet implemented:
 
-- Runtime-validated and tuned engine / propeller behavior
+- Full POH-matched performance envelope
+- Full cruise, descent, and stall validation
+- Final engine / propeller tuning across all operating regimes
 - Full retractable gear system animation and final polish
-- Full electrical / fuel systems
+- Full electrical system
+- Full fuel system
 - Cockpit and instruments
-- Full performance tuning and POH matching
+- Finalized aircraft sounds
+- Visual polish and detailed liveries
+
+---
+
+## Current Development Focus
+
+The aircraft is currently in the FDM validation stage.
+
+Recent work has focused on validating the turbocharged climb envelope and service-ceiling behavior. The aircraft has been tested up to FL250, where climb performance now correctly approaches service-ceiling behavior with only a small remaining climb rate.
+
+The next planned development focus is cruise, descent, and stall-regression testing from the current validated climb baseline.
+
+Ground handling is being developed separately from the airborne performance model. A Pacejka-based tire model has been added, but aero-side validation remains focused on JSBSim flight behavior.
 
 ---
 
 ## Goals
 
 - Accurate Mooney M20M flight envelope
-- Turbocharged Lycoming TIO-540 engine behavior
+- Turbocharged Lycoming TIO-540 behavior
+- Realistic constant-speed propeller behavior
 - Realistic retractable gear logic
+- Stable ground handling
 - Full electrical and fuel systems
 - Functional analog cockpit
-- Cross-country performance matching POH data
+- Cross-country performance matching against reference data where available
+- Clean FlightGear aircraft structure suitable for long-term development
 
 ---
 
@@ -64,17 +93,19 @@ Not yet implemented:
 - FlightGear Wiki Page  
   <https://wiki.flightgear.org/Mooney_M20M_Bravo>
 
-- **Special mention**
+---
 
-  We at BravoWorks have just launched a Discord server for our hangar. Check it out!
+## Community
 
-  <https://discord.gg/tuMr5nbqps>
+BravoWorks has launched a Discord server for development updates, discussion, and testing.
+
+<https://discord.gg/tuMr5nbqps>
 
 ---
 
 ## Installation
 
-Clone into your FlightGear `Aircraft` directory or any desired place:
+Clone into your FlightGear `Aircraft` directory or any other aircraft directory loaded by FlightGear:
 
 ```bash
 cd FlightGear/Aircraft
