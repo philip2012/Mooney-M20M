@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <model>
+    <name>Ground2NOALS</name>
+    <path>Classic/ground2.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>Ground2NOALS</object-name>
+    <condition>
+      <not><property>sim/rendering/shaders/skydome</property></not>
+    </condition>
+  </animation>
+
+  <model>
+    <name>Ground2ALS</name>
+    <path>ALS/ground2.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>Ground2ALS</object-name>
+    <condition>
+      <property>sim/rendering/shaders/skydome</property>
+    </condition>
+  </animation>
+
+  <model>
+    <name>Ground2HDR</name>
+    <path>HDR/ground2.xml</path>
+  </model>
+
+  <animation>
+    <type>select</type>
+    <object-name>Ground2HDR</object-name>
+    <condition>
+      <property>sim/rendering/hdr/hdr-enabled</property>
+    </condition>
+  </animation>
+
+</PropertyList>

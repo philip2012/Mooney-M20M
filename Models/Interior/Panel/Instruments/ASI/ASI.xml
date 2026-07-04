@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <path>ASI.ac</path>
+
+  <animation>
+    <object-name>fond</object-name>
+    <object-name>face</object-name>
+    <object-name>tas</object-name>
+    <object-name>Needle</object-name>
+    <object-name>Knob</object-name>
+
+    <object-name>vitre</object-name>
+  </animation>
+
+  <animation>
+    <type>noshadow</type>
+    <object-name>fond</object-name>
+    <object-name>face</object-name>
+    <object-name>tas</object-name>
+    <object-name>Needle</object-name>
+    <object-name>Knob</object-name>
+    <object-name>vitre</object-name>
+  </animation>
+
+  <!-- working for Compositor -->
+  <effect>
+    <inherits-from>../../../../Effects/Glass/glass</inherits-from>
+    <object-name>vitre</object-name>
+  </effect>
+
+  <animation>
+    <type>material</type>
+    <object-name>face</object-name>
+    <object-name>tas</object-name>
+    <object-name>Needle</object-name>
+    <condition>
+      <property>controls/electric/battery-switch</property>
+    </condition>
+    <emission>
+      <factor-prop>controls/lighting/instruments-norm</factor-prop>
+      <red>   0.50 </red>
+      <green> 0.40 </green>
+      <blue>  0.30 </blue>
+    </emission>
+  </animation>
+
+  <!-- Should be temperature -->
+  <animation>
+    <type>pick</type>
+    <object-name>Knob</object-name>
+    <action>
+      <button>0</button>
+      <button>3</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/airspeed-indicator/pressure-alt-offset-deg</property>
+        <step>1</step>
+        <min>0</min>
+        <max>360</max>
+        <wrap>1</wrap>
+      </binding>
+    </action>
+    <action>
+      <button>1</button>
+      <button>4</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/airspeed-indicator/pressure-alt-offset-deg</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>360</max>
+        <wrap>1</wrap>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>tas</object-name>
+    <property>instrumentation/airspeed-indicator/pressure-alt-offset-deg</property>
+    <factor>1</factor>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Needle</object-name>
+    <property>instrumentation/airspeed-indicator/indicated-speed-kt</property>
+    <interpolation>
+      <entry><ind>   0 </ind><dep>   0 </dep></entry>
+      <entry><ind>  40 </ind><dep>  30 </dep></entry>
+      <entry><ind>  60 </ind><dep>  73 </dep></entry>
+      <entry><ind>  80 </ind><dep> 114 </dep></entry>
+      <entry><ind> 100 </ind><dep> 152 </dep></entry>
+      <entry><ind> 120 </ind><dep> 188 </dep></entry>
+      <entry><ind> 140 </ind><dep> 222 </dep></entry>
+      <entry><ind> 160 </ind><dep> 253 </dep></entry>
+      <entry><ind> 180 </ind><dep> 281 </dep></entry>
+      <entry><ind> 200 </ind><dep> 308 </dep></entry>
+      <entry><ind> 220 </ind><dep> 320 </dep></entry>
+    </interpolation>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+</PropertyList>

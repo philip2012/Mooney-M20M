@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <path>hsi.ac</path>
+
+  <animation>
+    <object-name>fond</object-name>
+    <object-name>crsneedle</object-name>
+    <object-name>crsknob</object-name>
+    <object-name>hdgknob</object-name>
+    <object-name>card</object-name>
+    <object-name>Plane</object-name>
+    <object-name>navflag</object-name>
+    <object-name>crsdeflection</object-name>
+    <object-name>fromflag</object-name>
+    <object-name>toflag</object-name>
+    <object-name>navbrg</object-name>
+    <object-name>hdgbug</object-name>
+
+    <object-name>vitre</object-name>
+  </animation>
+
+  <animation>
+    <type>noshadow</type>
+    <object-name>fond</object-name>
+    <object-name>crsneedle</object-name>
+    <object-name>crsknob</object-name>
+    <object-name>hdgknob</object-name>
+    <object-name>card</object-name>
+    <object-name>Plane</object-name>
+    <object-name>navflag</object-name>
+    <object-name>crsdeflection</object-name>
+    <object-name>fromflag</object-name>
+    <object-name>toflag</object-name>
+    <object-name>navbrg</object-name>
+    <object-name>hdgbug</object-name>
+    <object-name>vitre</object-name>
+  </animation>
+
+  <!-- working for Compositor -->
+  <effect>
+    <inherits-from>../../../../Effects/Glass/glass</inherits-from>
+    <object-name>vitre</object-name>
+  </effect>
+
+  <animation>
+    <type>material</type>
+    <object-name>crsneedle</object-name>
+    <object-name>crsknob</object-name>
+    <object-name>hdgknob</object-name>
+    <object-name>card</object-name>
+    <object-name>Plane</object-name>
+    <object-name>navflag</object-name>
+    <object-name>crsdeflection</object-name>
+    <object-name>fromflag</object-name>
+    <object-name>toflag</object-name>
+    <object-name>navbrg</object-name>
+    <object-name>hdgbug</object-name>
+    <condition>
+      <property>controls/electric/battery-switch</property>
+    </condition>
+    <emission>
+      <factor-prop>controls/lighting/instruments-norm</factor-prop>
+      <red>   0.50 </red>
+      <green> 0.40 </green>
+      <blue>  0.30 </blue>
+    </emission>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>navflag</object-name>
+    <condition>
+      <or>
+        <not><property>systems/electrical/outputs/nav</property></not>
+        <not><property>instrumentation/nav/in-range</property></not>
+      </or>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>toflag</object-name>
+    <condition>
+      <property>instrumentation/nav/to-flag</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>fromflag</object-name>
+    <condition>
+      <property>instrumentation/nav/from-flag</property>
+    </condition>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>card</object-name>
+    <object-name>crsneedle</object-name>
+    <object-name>crsdeflection</object-name>
+    <object-name>toflag</object-name>
+    <object-name>fromflag</object-name>
+    <property>orientation/heading-magnetic-deg</property>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>navbrg</object-name>
+    <property>orientation/heading-deg</property>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>crsneedle</object-name>
+    <object-name>crsdeflection</object-name>
+    <object-name>toflag</object-name>
+    <object-name>fromflag</object-name>
+    <property>instrumentation/nav/radials/selected-deg</property>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>translate</type>
+    <object-name>crsdeflection</object-name>
+    <property>instrumentation/nav/heading-needle-deflection</property>
+    <interpolation>
+      <entry><ind> -5 </ind><dep> -0.0117 </dep></entry>
+      <entry><ind>  0 </ind><dep>  0.0000 </dep></entry>
+      <entry><ind>  5 </ind><dep>  0.0117 </dep></entry>
+    </interpolation>
+    <axis>
+      <x> 0 </x>
+      <y> 1 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>hdgbug</object-name>
+    <property>autopilot/internal/heading-bug-error-deg</property>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>navbrg</object-name>
+    <property>instrumentation/nav/heading-deg</property>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>crsknob</object-name>
+    <property>instrumentation/nav/radials/selected-deg</property>
+    <factor>2</factor>
+    <center>
+      <x-m>  0.00000 </x-m>
+      <y-m> -0.03646 </y-m>
+      <z-m> -0.03358 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>hdgknob</object-name>
+    <property>autopilot/settings/heading-bug-deg</property>
+    <factor>2</factor>
+    <center>
+      <x-m>  0.00000 </x-m>
+      <y-m>  0.03696 </y-m>
+      <z-m> -0.03358 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <!-- hotspots-->
+  <animation>
+    <type>pick</type>
+    <object-name>crsknob</object-name>
+    <action>
+      <button>3</button>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/nav/radials/selected-deg</property>
+        <step>1</step>
+        <min>0</min>
+        <max>360</max>
+        <wrap>true</wrap>
+      </binding>
+    </action>
+    <action>
+      <button>4</button>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/nav/radials/selected-deg</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>360</max>
+        <wrap>true</wrap>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>pick</type>
+    <object-name>hdgknob</object-name>
+    <action>
+      <button>3</button>
+      <binding>
+        <command>property-adjust</command>
+        <property>autopilot/settings/heading-bug-deg</property>
+        <step>1</step>
+        <min>0</min>
+        <max>360</max>
+        <wrap>true</wrap>
+      </binding>
+    </action>
+    <action>
+      <button>4</button>
+      <binding>
+        <command>property-adjust</command>
+        <property>autopilot/settings/heading-bug-deg</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>360</max>
+        <wrap>true</wrap>
+      </binding>
+    </action>
+  </animation>
+
+</PropertyList>

@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<PropertyList>
+
+  <path>KT76A.ac</path>
+
+  <animation>
+    <object-name>fond</object-name>
+    <object-name>back</object-name>
+    <object-name>KnobMode</object-name>
+    <object-name>Ident</object-name>
+    <object-name>Dial1</object-name>
+    <object-name>Knob1</object-name>
+    <object-name>Dial10</object-name>
+    <object-name>Knob10</object-name>
+    <object-name>Dial100</object-name>
+    <object-name>Knob100</object-name>
+    <object-name>Dial1000</object-name>
+    <object-name>Knob1000</object-name>
+    <object-name>lampe</object-name>
+
+    <object-name>vitre</object-name>
+  </animation>
+
+  <animation>
+    <type>noshadow</type>
+    <object-name>fond</object-name>
+    <object-name>back</object-name>
+    <object-name>KnobMode</object-name>
+    <object-name>Ident</object-name>
+    <object-name>Dial1</object-name>
+    <object-name>Knob1</object-name>
+    <object-name>Dial10</object-name>
+    <object-name>Knob10</object-name>
+    <object-name>Dial100</object-name>
+    <object-name>Knob100</object-name>
+    <object-name>Dial1000</object-name>
+    <object-name>Knob1000</object-name>
+    <object-name>lampe</object-name>
+    <object-name>vitre</object-name>
+  </animation>
+
+  <!-- working for Compositor -->
+  <effect>
+    <inherits-from>../../../../Effects/Glass/glass</inherits-from>
+    <object-name>vitre</object-name>
+  </effect>
+
+  <animation>
+    <type>material</type>
+    <object-name>KnobMode</object-name>
+    <object-name>Ident</object-name>
+    <object-name>Dial1</object-name>
+    <object-name>Knob1</object-name>
+    <object-name>Dial10</object-name>
+    <object-name>Knob10</object-name>
+    <object-name>Dial100</object-name>
+    <object-name>Knob100</object-name>
+    <object-name>Dial1000</object-name>
+    <object-name>Knob1000</object-name>
+    <condition>
+      <property>controls/electric/battery-switch</property>
+    </condition>
+    <emission>
+      <factor-prop>controls/lighting/instruments-norm</factor-prop>
+      <red>   0.50 </red>
+      <green> 0.40 </green>
+      <blue>  0.30 </blue>
+    </emission>
+  </animation>
+
+  <!-- KNOBS AND DIGITS -->
+  <animation>
+    <type>pick</type>
+    <object-name>Knob1000</object-name>
+    <visible>true</visible>
+    <action>
+      <button>3</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[3]</property>
+        <step>1</step>
+        <min>0</min>
+        <max>7</max>
+      </binding>
+    </action>
+    <action>
+      <button>4</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[3]</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>7</max>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Knob1000</object-name>
+    <property>instrumentation/transponder/inputs/digit[3]</property>
+    <offset-deg>0</offset-deg>
+    <factor>-10</factor>
+    <center>
+      <x-m>  0.01453 </x-m>
+      <y-m> -0.01850 </y-m>
+      <z-m>  0.00065 </z-m>
+    </center>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Dial1000</object-name>
+    <property>instrumentation/transponder/inputs/digit[3]</property>
+    <factor>45</factor>
+    <center>
+      <x-m>  0.00400 </x-m>
+      <y-m> -0.01850 </y-m>
+      <z-m> -0.00135 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+  <!-- ********** -->
+
+  <animation>
+    <type>pick</type>
+    <object-name>Knob100</object-name>
+    <visible>true</visible>
+    <action>
+      <button>3</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[2]</property>
+        <step>1</step>
+        <min>0</min>
+        <max>9</max>
+      </binding>
+    </action>
+    <action>
+      <button>4</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[2]</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>9</max>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Knob100</object-name>
+    <property>instrumentation/transponder/inputs/digit[2]</property>
+    <offset-deg>0</offset-deg>
+    <factor>-10</factor>
+    <center>
+      <x-m> 0.01453 </x-m>
+      <y-m> 0.00850 </y-m>
+      <z-m> 0.00065 </z-m>
+    </center>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Dial100</object-name>
+    <property>instrumentation/transponder/inputs/digit[2]</property>
+    <factor>45</factor>
+    <center>
+      <x-m>  0.00400 </x-m>
+      <y-m>  0.00850 </y-m>
+      <z-m> -0.00135 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+  <!-- ********** -->
+
+  <animation>
+    <type>pick</type>
+    <object-name>Knob10</object-name>
+    <visible>true</visible>
+    <action>
+      <button>3</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[1]</property>
+        <step>1</step>
+        <min>0</min>
+        <max>9</max>
+      </binding>
+    </action>
+    <action>
+      <button>4</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[1]</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>9</max>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Knob10</object-name>
+    <property>instrumentation/transponder/inputs/digit[1]</property>
+    <offset-deg>0</offset-deg>
+    <factor>-10</factor>
+    <center>
+      <x-m> 0.01453 </x-m>
+      <y-m> 0.03550 </y-m>
+      <z-m> 0.00065 </z-m>
+    </center>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Dial10</object-name>
+    <property>instrumentation/transponder/inputs/digit[1]</property>
+    <factor>45</factor>
+    <center>
+      <x-m>  0.00400 </x-m>
+      <y-m>  0.03550 </y-m>
+      <z-m> -0.00135 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+  <!-- ********** -->
+
+  <animation>
+    <type>pick</type>
+    <object-name>Knob1</object-name>
+    <visible>true</visible>
+    <action>
+      <button>3</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[0]</property>
+        <step>1</step>
+        <min>0</min>
+        <max>9</max>
+      </binding>
+    </action>
+    <action>
+      <button>4</button>
+      <repeatable>true</repeatable>
+      <binding>
+        <command>property-adjust</command>
+        <property>instrumentation/transponder/inputs/digit[0]</property>
+        <step>-1</step>
+        <min>0</min>
+        <max>9</max>
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Knob1</object-name>
+    <property>instrumentation/transponder/inputs/digit[0]</property>
+    <offset-deg>0</offset-deg>
+    <factor>-10</factor>
+    <center>
+      <x-m> 0.01453 </x-m>
+      <y-m> 0.06250 </y-m>
+      <z-m> 0.00065 </z-m>
+    </center>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>Dial1</object-name>
+    <property>instrumentation/transponder/inputs/digit[0]</property>
+    <factor>45</factor>
+    <center>
+      <x-m>  0.00400 </x-m>
+      <y-m>  0.06250 </y-m>
+      <z-m> -0.00135 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <!-- Mode -->
+  <animation>
+    <type>knob</type>
+    <object-name>KnobMode</object-name>
+    <visible>true</visible>
+    <drag-scale-px>20</drag-scale-px>
+    <action>
+      <binding>
+        <command>property-cycle</command>
+        <property>instrumentation/transponder/inputs/knob-mode</property>
+        <wrap>0</wrap>
+        <value>0</value> <!-- OFF -->
+        <value>1</value> <!-- SBY -->
+        <value>4</value> <!-- ON  -->
+        <value>5</value> <!-- ALT -->
+        <value>2</value> <!-- TST -->
+      </binding>
+    </action>
+  </animation>
+
+  <animation>
+    <type>rotate</type>
+    <object-name>KnobMode</object-name>
+    <property>instrumentation/transponder/inputs/knob-mode</property>
+    <factor>1</factor>
+    <interpolation>
+      <entry><ind> 0 </ind><dep>   0 </dep></entry>
+      <entry><ind> 1 </ind><dep>  45 </dep></entry>
+      <entry><ind> 4 </ind><dep>  90 </dep></entry>
+      <entry><ind> 5 </ind><dep> 135 </dep></entry>
+      <entry><ind> 2 </ind><dep> 180 </dep></entry>
+    </interpolation>
+    <center>
+      <x-m>  0.01453 </x-m>
+      <y-m> -0.06102 </y-m>
+      <z-m>  0.00065 </z-m>
+    </center>
+    <axis>
+      <x> -1 </x>
+      <y>  0 </y>
+      <z>  0 </z>
+    </axis>
+  </animation>
+
+  <animation>
+    <type>pick</type>
+    <visible>false</visible>
+    <object-name>Ident</object-name>
+    <action>
+      <button>0</button>
+      <repeatable>false</repeatable>
+      <binding>
+        <command>property-assign</command>
+        <property>instrumentation/transponder/inputs/ident-btn</property>
+        <value type="int">1</value>
+      </binding>
+      <mod-up>
+        <binding>
+          <command>property-assign</command>
+          <property>instrumentation/transponder/inputs/ident-btn</property>
+          <value type="int">0</value>
+        </binding>
+      </mod-up>
+    </action>
+  </animation>
+
+  <animation>
+    <type>translate</type>
+    <object-name>Ident</object-name>
+    <property>instrumentation/transponder/inputs/ident-btn</property>
+    <factor>-0.0015</factor>
+    <axis>
+      <x> 1 </x>
+      <y> 0 </y>
+      <z> 0 </z>
+    </axis>
+  </animation>
+
+  <!-- Label Text -->
+  <text>
+    <name>LabelText</name>
+    <type type="string">literal</type>
+    <text type="string">Transponder</text>
+    <draw-text type="bool">true</draw-text>
+    <font>Helvetica.txf</font>
+    <character-size type="double">0.012</character-size>
+    <character-aspect-ratio type="double">1.0</character-aspect-ratio>
+    <axis-alignment>yz-plane</axis-alignment>
+    <max-height>0.2</max-height>
+    <max-width>0.07</max-width>
+    <font-resolution>
+      <width type="int">32</width>
+      <height type="int">32</height>
+    </font-resolution>
+    <alignment>center-center</alignment>
+    <offsets>
+      <x-m> 0.01 </x-m>
+      <y-m> 0.00 </y-m>
+      <z-m> 0.00 </z-m>
+    </offsets>
+  </text>
+
+  <animation>
+    <type>material</type>
+    <object-name>LabelText</object-name>
+    <emission>
+      <red>   1.0 </red>
+      <green> 0.8 </green>
+      <blue>  0.0 </blue>
+    </emission>
+  </animation>
+
+  <animation>
+    <type>select</type>
+    <object-name>LabelText</object-name>
+    <condition>
+      <property>sim/panel-hotspots</property>
+    </condition>
+  </animation>
+
+</PropertyList>

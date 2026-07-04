@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- This program is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation; either version 2 of the License, or
+     (at your option) any later version.
+
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+-->
+<PropertyList>
+
+  <filter>
+    <name>HSI: bearing needle</name>
+    <debug>false</debug>
+    <type>gain</type>
+    <input>
+      <condition>
+        <greater-than-equals>
+          <property>systems/electrical/outputs/hsi</property>
+          <value type="float">24</value>
+        </greater-than-equals>
+        <equals>
+          <property>instrumentation/tacan/switch-position</property>
+          <value>0</value>
+        </equals>
+        <property>instrumentation/nav[0]/in-range</property>
+      </condition>
+      <property>instrumentation/nav[0]/heading-deg</property>
+    </input>
+    <input>
+      <condition>
+        <greater-than-equals>
+          <property>systems/electrical/outputs/hsi</property>
+          <value type="float">24</value>
+        </greater-than-equals>
+        <equals>
+          <property>instrumentation/tacan/switch-position</property>
+          <value>1</value>
+        </equals>
+        <property>instrumentation/tacan/in-range</property>
+      </condition>
+      <property>instrumentation/tacan/indicated-bearing-true-deg</property>
+    </input>
+    <input>
+      <expression>
+        <sum>
+          <property>instrumentation/heading-indicator/indicated-heading-deg</property>
+          <value>90.0</value>
+        </sum>
+      </expression>
+    </input>
+    <output>instrumentation/heading-indicator/bearing-deg</output>
+  </filter>
+
+</PropertyList>
