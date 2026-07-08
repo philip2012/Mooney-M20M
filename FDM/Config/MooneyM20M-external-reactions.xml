@@ -22,4 +22,29 @@ the Free Software Foundation; either version 2 of the License, or
             <z>0</z>
         </direction>
     </force>
+
+    <!-- Add wake turbulence support for my mooney, random idea popped of my head cause i don't wanna abandon the project -->
+    <!-- FlightGear AI wake turbulence force.
+        The location is the center of the main wing leading edge. -->
+    <force name="ai-wake" frame="BODY">
+        <location unit="IN">
+            <x>33.25</x>
+            <y>0.0</y>
+            <z>0.0</z>
+        </location>
+        <direction>
+            <x>0.0</x>
+            <y>0.0</y>
+            <z>0.0</z>
+        </direction>
+    </force>
+
+    <!-- FlightGear AI wake turbulence moment. -->
+    <moment name="ai-wake" frame="BODY">
+        <direction>
+            <x>0.0</x>
+            <y>0.0</y>
+            <z>0.0</z>
+        </direction>
+    </moment>
 </external_reactions>
