@@ -532,8 +532,7 @@
   <animation>
     <type>rotate</type>
     <object-name>RoueAvant</object-name>
-    <!-- <property>gear/gear[0]/compression-norm</property> -->
-    <property>sim/multiplay/generic/float[9]</property>
+    <property>gear/gear[0]/compression-norm</property>
     <interpolation>
       <entry><ind> 0 </ind><dep>  0 </dep></entry>
       <entry><ind> 1 </ind><dep> 10 </dep></entry>
@@ -559,8 +558,7 @@
   <animation>
     <type>rotate</type>
     <object-name>RoueGauche</object-name>
-    <!-- <property>gear/gear[1]/compression-norm</property> -->
-    <property>sim/multiplay/generic/float[10]</property>
+    <property>gear/gear[1]/compression-norm</property>
     <interpolation>
       <entry><ind> 0 </ind><dep>  0 </dep></entry>
       <entry><ind> 1 </ind><dep> 10 </dep></entry>
@@ -586,8 +584,7 @@
   <animation>
     <type>rotate</type>
     <object-name>RoueDroite</object-name>
-    <!-- <property>gear/gear[2]/compression-norm</property> -->
-    <property>sim/multiplay/generic/float[11]</property>
+    <property>gear/gear[2]/compression-norm</property>
     <interpolation>
       <entry><ind> 0 </ind><dep>  0 </dep></entry>
       <entry><ind> 1 </ind><dep> 10 </dep></entry>
