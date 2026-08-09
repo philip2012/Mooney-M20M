@@ -11,11 +11,12 @@
     <type>select</type>
     <object-name>RedLightNOALS</object-name>
     <condition>
-      <or>
+      <not>
         <property>/sim/rendering/shaders/skydome</property>
-        <not><property>/sim/rendering/shaders/skydome</property></not>
+      </not>
+      <not>
         <property>/sim/rendering/hdr/hdr-enabled</property>
-      </or>
+      </not>
     </condition>
   </animation>
 
@@ -29,6 +30,9 @@
     <object-name>RedLightALS</object-name>
     <condition>
       <property>/sim/rendering/shaders/skydome</property>
+      <not>
+        <property>/sim/rendering/hdr/hdr-enabled</property>
+      </not>
     </condition>
   </animation>
 
