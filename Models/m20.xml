@@ -6,7 +6,7 @@
 
   <!-- MP sound call -->
   <sound>
-    <path>Aircraft/Mooney-M20M/Sounds/mp-sound.xml</path>
+    <!-- <path>Aircraft/Mooney-M20M/Sounds/mp-sound.xml</path> commented out due to no sound implemented yet -->
   </sound>
 
   <nasal>
