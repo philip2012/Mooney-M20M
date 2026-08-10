@@ -43,6 +43,7 @@ the Free Software Foundation; either version 2 of the License, or
 
         <model>
             <path>Aircraft/Mooney-M20M/Models/m20.xml</path>
+            <show-copilot type="bool">false</show-copilot>
         </model>
 
         <previews>
@@ -90,6 +91,7 @@ the Free Software Foundation; either version 2 of the License, or
 
         <multiplay>
             <generic>
+                <bool n="0" alias="/sim/model/show-copilot" />
                 <bool n="3" alias="/gear/gear[0]/wow" />
                 <bool n="4" alias="/gear/gear[1]/wow" />
                 <bool n="5" alias="/gear/gear[2]/wow" />
