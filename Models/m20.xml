@@ -688,7 +688,7 @@
     <object-name>TrainAvant</object-name>
     <!-- <property>gear/gear[0]/caster-angle-deg</property> -->
     <property>sim/multiplay/generic/float[4]</property>
-    <factor> -10.4 </factor>
+    <factor> -13.0 </factor>
     <axis>
       <x1-m> -3.36004 </x1-m>
       <y1-m>  0.00000 </y1-m>
