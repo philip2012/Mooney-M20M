@@ -52,7 +52,7 @@
     <object-name>taillight</object-name>
     <condition>
       <!-- <property>controls/lighting/nav-lights</property> -->
-      <property>sim/multiplay/generic/bool[15]</property>
+      <property>controls/lighting/nav-lights</property>
     </condition>
   </animation>
 
