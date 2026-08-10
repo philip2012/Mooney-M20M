@@ -85,6 +85,20 @@ the Free Software Foundation; either version 2 of the License, or
         <state include="States/take-off-overlay.xml" n="2" />
         <!-- <state include="States/cruise-overlay.xml" n="3" /> -->
         <state include="States/approach-overlay.xml" n="4" />
+
+        <!-- Alias JSBSim gear state to generic MP properties used by model/effects -->
+
+        <multiplay>
+            <generic>
+                <bool n="3" alias="/gear/gear[0]/wow" />
+                <bool n="4" alias="/gear/gear[1]/wow" />
+                <bool n="5" alias="/gear/gear[2]/wow" />
+
+                <float n="5" alias="/gear/gear[0]/rollspeed-ms" />
+                <float n="6" alias="/gear/gear[1]/rollspeed-ms" />
+                <float n="7" alias="/gear/gear[2]/rollspeed-ms" />
+            </generic>
+        </multiplay>
     </sim>
 
     <nasal>
