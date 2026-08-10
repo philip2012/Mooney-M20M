@@ -87,7 +87,7 @@ the Free Software Foundation; either version 2 of the License, or
         <!-- <state include="States/cruise-overlay.xml" n="3" /> -->
         <state include="States/approach-overlay.xml" n="4" />
 
-        <!-- Alias JSBSim gear state to generic MP properties used by model/effects -->
+        <!-- Alias aircraft state to generic MP properties used by model/effects -->
 
         <multiplay>
             <generic>
@@ -96,6 +96,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <bool n="4" alias="/gear/gear[1]/wow" />
                 <bool n="5" alias="/gear/gear[2]/wow" />
                 <bool n="7" alias="/engines/engine[0]/cranking" />
+                <bool n="16" alias="/controls/lighting/landing-lights" />
 
                 <float n="0" alias="/sim/model/door-positions/crew/position-norm" />
                 <float n="4" alias="/gear/gear[0]/steering-norm" />
