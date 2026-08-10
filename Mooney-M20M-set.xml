@@ -94,6 +94,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <bool n="4" alias="/gear/gear[1]/wow" />
                 <bool n="5" alias="/gear/gear[2]/wow" />
 
+                <float n="0" alias="/sim/model/door-positions/crew/position-norm" />
                 <float n="4" alias="/gear/gear[0]/steering-norm" />
                 <float n="5" alias="/gear/gear[0]/rollspeed-ms" />
                 <float n="6" alias="/gear/gear[1]/rollspeed-ms" />
@@ -103,6 +104,10 @@ the Free Software Foundation; either version 2 of the License, or
     </sim>
 
     <nasal>
+        <doors>
+            <file>Nasal/doors.nas</file>
+        </doors>
+
         <state_init>
             <file>Nasal/state-init.nas</file>
         </state_init>
