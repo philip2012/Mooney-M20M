@@ -95,6 +95,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <bool n="3" alias="/gear/gear[0]/wow" />
                 <bool n="4" alias="/gear/gear[1]/wow" />
                 <bool n="5" alias="/gear/gear[2]/wow" />
+                <bool n="7" alias="/engines/engine[0]/cranking" />
 
                 <float n="0" alias="/sim/model/door-positions/crew/position-norm" />
                 <float n="4" alias="/gear/gear[0]/steering-norm" />
