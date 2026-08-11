@@ -96,6 +96,8 @@ the Free Software Foundation; either version 2 of the License, or
                 <bool n="4" alias="/gear/gear[1]/wow" />
                 <bool n="5" alias="/gear/gear[2]/wow" />
                 <bool n="7" alias="/engines/engine[0]/cranking" />
+                <bool n="13" alias="/controls/lighting/strobe" />
+                <bool n="14" alias="/sim/model/lights/strobe-flash/state" />
                 <bool n="16" alias="/controls/lighting/landing-lights" />
                 <bool n="20" alias="/controls/lighting/taxi-light" />
 
@@ -112,6 +114,10 @@ the Free Software Foundation; either version 2 of the License, or
         <doors>
             <file>Nasal/doors.nas</file>
         </doors>
+
+        <lights>
+            <file>Nasal/lights.nas</file>
+        </lights>
 
         <state_init>
             <file>Nasal/state-init.nas</file>
