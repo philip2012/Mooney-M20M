@@ -38,7 +38,7 @@
   -->
 
   <params>
-    <electrical>systems/electrical/outputs/audio-panel</electrical>
+    <electrical>/systems/mooney-m20m/electrical/outputs/audio-panel</electrical>
     <outer>instrumentation/marker-beacon/outer</outer>
     <middle>instrumentation/marker-beacon/middle</middle>
     <inner>instrumentation/marker-beacon/inner</inner>
