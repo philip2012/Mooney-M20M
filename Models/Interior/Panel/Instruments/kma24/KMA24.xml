@@ -129,7 +129,7 @@
     <object-name>Mkr_M</object-name>
     <object-name>Knob</object-name>
     <condition>
-      <property>controls/electric/battery-switch</property>
+      <property alias="../../../params/electrical"/>
     </condition>
     <emission>
       <factor-prop>controls/lighting/instruments-norm</factor-prop>
