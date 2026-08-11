@@ -146,7 +146,7 @@
         <property>instrumentation/transponder/inputs/digit[2]</property>
         <step>1</step>
         <min>0</min>
-        <max>9</max>
+        <max>7</max>
       </binding>
     </action>
     <action>
@@ -157,7 +157,7 @@
         <property>instrumentation/transponder/inputs/digit[2]</property>
         <step>-1</step>
         <min>0</min>
-        <max>9</max>
+        <max>7</max>
       </binding>
     </action>
   </animation>
@@ -210,7 +210,7 @@
         <property>instrumentation/transponder/inputs/digit[1]</property>
         <step>1</step>
         <min>0</min>
-        <max>9</max>
+        <max>7</max>
       </binding>
     </action>
     <action>
@@ -221,7 +221,7 @@
         <property>instrumentation/transponder/inputs/digit[1]</property>
         <step>-1</step>
         <min>0</min>
-        <max>9</max>
+        <max>7</max>
       </binding>
     </action>
   </animation>
@@ -274,7 +274,7 @@
         <property>instrumentation/transponder/inputs/digit[0]</property>
         <step>1</step>
         <min>0</min>
-        <max>9</max>
+        <max>7</max>
       </binding>
     </action>
     <action>
@@ -285,7 +285,7 @@
         <property>instrumentation/transponder/inputs/digit[0]</property>
         <step>-1</step>
         <min>0</min>
-        <max>9</max>
+        <max>7</max>
       </binding>
     </action>
   </animation>
