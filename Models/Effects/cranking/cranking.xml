@@ -11,7 +11,12 @@
     <type>select</type>
     <object-name>CrankingNOALS</object-name>
     <condition>
-      <not><property>/sim/rendering/shaders/skydome</property></not>
+      <not>
+        <property>/sim/rendering/shaders/skydome</property>
+      </not>
+      <not>
+        <property>/sim/rendering/hdr/hdr-enabled</property>
+      </not>
     </condition>
   </animation>
 
@@ -25,6 +30,9 @@
     <object-name>CrankingALS</object-name>
     <condition>
       <property>/sim/rendering/shaders/skydome</property>
+      <not>
+        <property>/sim/rendering/hdr/hdr-enabled</property>
+      </not>
     </condition>
   </animation>
 

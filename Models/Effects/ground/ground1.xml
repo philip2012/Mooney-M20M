@@ -11,7 +11,12 @@
     <type>select</type>
     <object-name>Ground1NOALS</object-name>
     <condition>
-      <not><property>sim/rendering/shaders/skydome</property></not>
+      <not>
+        <property>/sim/rendering/shaders/skydome</property>
+      </not>
+      <not>
+        <property>/sim/rendering/hdr/hdr-enabled</property>
+      </not>
     </condition>
   </animation>
 
@@ -24,7 +29,10 @@
     <type>select</type>
     <object-name>Ground1ALS</object-name>
     <condition>
-      <property>sim/rendering/shaders/skydome</property>
+      <property>/sim/rendering/shaders/skydome</property>
+      <not>
+        <property>/sim/rendering/hdr/hdr-enabled</property>
+      </not>
     </condition>
   </animation>
 
