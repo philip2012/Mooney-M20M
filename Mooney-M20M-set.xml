@@ -10,7 +10,7 @@ the Free Software Foundation; either version 2 of the License, or
 -->
 
 <PropertyList>
-    <sim>
+    <sim include="Systems/views.xml">
         <name>Mooney M20M Bravo</name>
         <description>Mooney M20M Bravo</description>
         <long-description>The Mooney M20M Bravo is a high-performance, turbocharged four-seat
