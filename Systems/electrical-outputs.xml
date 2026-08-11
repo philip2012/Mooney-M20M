@@ -11,4 +11,26 @@
         </input>
         <output>/systems/mooney-m20m/electrical/outputs/audio-panel</output>
     </logic>
+    <logic>
+        <name>battery-master-sync</name>
+        <input>
+            <equals>
+                <property>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/battery-master</property>
+                <value>1</value>
+            </equals>
+        </input>
+        <output>/controls/engines/engine[0]/master-bat</output>
+    </logic>
+
+    <logic>
+        <name>alternator-master-sync</name>
+        <input>
+            <equals>
+                <property>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/alternator</property>
+                <value>1</value>
+            </equals>
+        </input>
+        <output>/controls/engines/engine[0]/master-alt</output>
+    </logic>
+
 </PropertyList>
