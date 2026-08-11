@@ -96,6 +96,8 @@ the Free Software Foundation; either version 2 of the License, or
                 <bool n="4" alias="/gear/gear[1]/wow" />
                 <bool n="5" alias="/gear/gear[2]/wow" />
                 <bool n="7" alias="/engines/engine[0]/cranking" />
+                <bool n="11" alias="/controls/lighting/beacon" />
+                <bool n="12" alias="/sim/model/lights/beacon-flash/state" />
                 <bool n="13" alias="/controls/lighting/strobe" />
                 <bool n="14" alias="/sim/model/lights/strobe-flash/state" />
                 <bool n="16" alias="/controls/lighting/landing-lights" />
