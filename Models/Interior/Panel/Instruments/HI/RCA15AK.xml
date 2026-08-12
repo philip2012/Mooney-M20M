@@ -50,7 +50,10 @@
     <object-name>Knob2</object-name>
     <object-name>Marks</object-name>
     <condition>
-      <property>controls/electric/battery-switch</property>
+      <greater-than-equals>
+        <property>systems/mooney-m20m/electrical/bus/main-volts</property>
+        <value type="float">24</value>
+      </greater-than-equals>
     </condition>
     <emission>
       <factor-prop>controls/lighting/instruments-norm</factor-prop>
