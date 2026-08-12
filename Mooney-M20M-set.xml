@@ -70,6 +70,32 @@ the Free Software Foundation; either version 2 of the License, or
             <community>https://discord.gg/tuMr5nbqps</community>
         </urls>
 
+        <tags>
+            <!-- Aircraft type -->
+            <tag>ga</tag>
+
+            <!-- Configuration -->
+            <tag>low-wing</tag>
+            <tag>tricycle</tag>
+            <tag>retractable-gear</tag>
+
+            <!-- Propulsion -->
+            <tag>piston</tag>
+            <tag>propeller</tag>
+            <tag>single-engine</tag>
+            <tag>variable-pitch</tag>
+
+            <!-- Era -->
+            <tag>1980s</tag>
+            <tag>1990s</tag>
+            <tag>2000s</tag>
+            <tag>2010s</tag>
+
+            <!-- Rendering -->
+            <tag>compositor</tag>
+            <tag>HDR</tag>
+        </tags>
+
         <!-- bridge properties together manually, jsbsim don't support outputting local properties directly to global property for starter-->
         <systems>
             <property-rule n="100">
@@ -127,14 +153,6 @@ the Free Software Foundation; either version 2 of the License, or
             <file>Nasal/state-init.nas</file>
         </state_init>
     </nasal>
-
-    <tags>
-        <tag n="0">ga</tag>
-        <tag n="1">single</tag>
-        <tag n="2">piston</tag>
-        <tag n="3">retractable-gear</tag>
-        <tag n="4">turbocharged</tag>
-    </tags>
 
     <input n="0">
         <keyboard>
