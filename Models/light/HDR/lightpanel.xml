@@ -19,7 +19,10 @@
     <object-name>LightPanel</object-name>
     <condition>
       <property>/sim/rendering/hdr/hdr-enabled</property>
-      <property>controls/electric/battery-switch</property>
+      <greater-than-equals>
+        <property>systems/mooney-m20m/electrical/bus/main-volts</property>
+        <value type="float">24</value>
+      </greater-than-equals>
     </condition>
   </animation>
 
