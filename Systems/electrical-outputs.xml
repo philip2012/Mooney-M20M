@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <PropertyList>
+
+    <filter>
+        <name>main-bus-voltage</name>
+        <type>gain</type>
+        <gain>28.0</gain>
+        <input>
+            <property>/fdm/jsbsim/systems/powerplant-controls/electrical/states/power-available</property>
+        </input>
+        <output>/systems/mooney-m20m/electrical/bus/main-volts</output>
+    </filter>
     <logic>
         <name>audio-panel-power-bridge</name>
         <input>
