@@ -24,21 +24,19 @@ the Free Software Foundation; either version 2 of the License, or
             among owner-pilots seeking near-turboprop performance with lower operating costs.</long-description>
         <author>Philips Nguyen (aka PhilipsGamer)</author>
 
-        <!-- mininum FlightGear version, will be updated accordingly-->
+        <!-- Minimum FlightGear version; update as requirements change. -->
         <minimum-fg-version>2024.1.1</minimum-fg-version>
 
         <flight-model>jsb</flight-model>
         <aero>FDM/Mooney-M20M</aero>
 
-        <primary-set>true</primary-set>
-
-        <variant-of>Mooney M20</variant-of>
+        <primary-set type="bool">true</primary-set>
         <status>alpha</status>
         <rating>
-            <FDM>2</FDM>
-            <systems>1</systems>
-            <cockpit>2</cockpit>
-            <model>3</model>
+            <FDM type="int">2</FDM>
+            <systems type="int">1</systems>
+            <cockpit type="int">2</cockpit>
+            <model type="int">3</model>
         </rating>
 
         <model>
