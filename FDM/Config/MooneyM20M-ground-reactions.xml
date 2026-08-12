@@ -14,7 +14,7 @@ the Free Software Foundation; either version 2 of the License, or
         <location unit="IN">
             <x>-21.52</x>
             <y>0.0</y>
-            <z>-34.0</z>
+            <z>-51.0</z>
         </location>
         <static_friction>0.80</static_friction>
         <dynamic_friction>0.55</dynamic_friction>
@@ -75,7 +75,7 @@ the Free Software Foundation; either version 2 of the License, or
         <location unit="IN">
             <x>58.05</x>
             <y>-55.0</y>
-            <z>-34.0</z>
+            <z>-51.0</z>
         </location>
 
         <static_friction>0.80</static_friction>
@@ -137,7 +137,7 @@ the Free Software Foundation; either version 2 of the License, or
         <location unit="IN">
             <x>58.05</x>
             <y>55.0</y>
-            <z>-34.0</z>
+            <z>-51.0</z>
         </location>
 
         <static_friction>0.80</static_friction>
