@@ -121,7 +121,10 @@
     <object-name>Btn_COMM</object-name>
     <object-name>Btn_NAV</object-name>
     <condition>
-      <property>controls/electric/battery-switch</property>
+      <greater-than-equals>
+        <property>systems/mooney-m20m/electrical/bus/main-volts</property>
+        <value type="float">24</value>
+      </greater-than-equals>
     </condition>
     <emission>
       <factor-prop>controls/lighting/instruments-norm</factor-prop>
@@ -157,7 +160,10 @@
     <object-name>Digit_R</object-name>
     <object-name>Digit_T</object-name>
     <condition>
-      <property>controls/electric/battery-switch</property>
+      <greater-than-equals>
+        <property>systems/mooney-m20m/electrical/bus/main-volts</property>
+        <value type="float">24</value>
+      </greater-than-equals>
     </condition>
     <emission>
       <factor-prop>controls/lighting/instruments-norm</factor-prop>
