@@ -22,7 +22,27 @@ the Free Software Foundation; either version 2 of the License, or
             900-1,000 nautical miles,
             making the Bravo one of the fastest certified piston singles of its era and a favorite
             among owner-pilots seeking near-turboprop performance with lower operating costs.</long-description>
-        <author>Philips Nguyen (aka PhilipsGamer)</author>
+        
+        <authors>
+            <author n="0">
+                <name>Philips Nguyen</name>
+                <description>Flight Dynamics, Systems, Instruments</description>
+                <nick>PhilipsGamer</nick>
+                <email>nvananphuc2022@gmail.com</email>
+            </author>
+            <author n="1">
+                <name>Emmanuel Baranger</name>
+                <description>Model, Textures</description>
+                <nick>Helijah</nick>
+                <email>embaranger@free.fr</email>
+            </author>
+            <author n="2">
+                <name>Israel Emmanuel</name>
+                <description>Model Intergration</description>
+                <nick>Naviat</nick>
+                <email>sriemmanuel787@gmail.com</email>
+            </author>
+        </authors>
 
         <!-- Minimum FlightGear version; update as requirements change. -->
         <minimum-fg-version>2024.1.1</minimum-fg-version>
