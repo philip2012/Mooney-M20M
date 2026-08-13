@@ -34,7 +34,7 @@ the Free Software Foundation; either version 2 of the License, or
             <default value="0" />
             <test value="1" logic="AND">
                 systems/powerplant-controls/electrical/switches/alternator == 1
-                /engines/engine[0]/running == 1
+                propulsion/engine[0]/set-running == 1
             </test>
             <output>systems/powerplant-controls/electrical/states/generation-available</output>
         </switch>
