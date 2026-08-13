@@ -172,6 +172,11 @@ the Free Software Foundation; either version 2 of the License, or
         <state_init>
             <file>Nasal/state-init.nas</file>
         </state_init>
+
+        <!-- Legacy MAP Canvas renderer from the model's original instrument implementation. -->
+        <m20>
+            <file>Nasal/map.nas</file>
+        </m20>
     </nasal>
 
     <input n="0">
