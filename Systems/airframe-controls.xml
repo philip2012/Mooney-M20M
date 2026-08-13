@@ -124,9 +124,9 @@ the Free Software Foundation; either version 2 of the License, or
         <switch name="airframe-controls/gear-retract-allowed">
             <default value="1" />
             <test value="0" logic="OR">
-                /gear/gear[0]/wow == 1
-                /gear/gear[1]/wow == 1
-                /gear/gear[2]/wow == 1
+                gear/unit[0]/WOW == 1
+                gear/unit[1]/WOW == 1
+                gear/unit[2]/WOW == 1
             </test>
             <output>systems/airframe-controls/gear/retract-allowed</output>
         </switch>
