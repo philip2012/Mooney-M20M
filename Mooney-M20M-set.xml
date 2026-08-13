@@ -116,12 +116,8 @@ the Free Software Foundation; either version 2 of the License, or
             <tag>HDR</tag>
         </tags>
 
-        <!-- bridge properties together manually, jsbsim don't support outputting local properties directly to global property for starter-->
+        <!-- FlightGear-facing aircraft property outputs -->
         <systems>
-            <property-rule n="100">
-                <name>Starter Bridge</name>
-                <path>Systems/starter-bridge.xml</path>
-            </property-rule>
             <property-rule n="101">
                 <name>Electrical Outputs</name>
                 <path>Systems/electrical-outputs.xml</path>
