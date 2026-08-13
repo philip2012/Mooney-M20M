@@ -92,13 +92,13 @@ the Free Software Foundation; either version 2 of the License, or
     </channel>
 
     <channel name="output-routing">
-        <!-- <switch name="powerplant-controls/starter-to-engine">
+        <switch name="powerplant-controls/starter-to-engine">
             <default value="0" />
             <test value="1">
                 systems/powerplant-controls/engine/states/start-allowed == 1
             </test>
-            <output>/controls/engines/engine[0]/starter</output>
-        </switch> -->
+            <output>propulsion/starter_cmd</output>
+        </switch>
         <switch name="powerplant-controls/magnetos-to-engine">
             <default value="0" />
             <test value="1">
@@ -110,25 +110,25 @@ the Free Software Foundation; either version 2 of the License, or
             <test value="3">
                 systems/powerplant-controls/engine/switches/magnetos == 3
             </test>
-            <output>/controls/engines/engine[0]/magnetos</output>
+            <output>propulsion/magneto_cmd</output>
         </switch>
 
         <pure_gain name="powerplant-controls/mixture-to-engine">
             <input>systems/powerplant-controls/engine/handles/mixture-norm</input>
             <gain>1.0</gain>
-            <output>/controls/engines/engine[0]/mixture</output>
+            <output>fcs/mixture-cmd-norm[0]</output>
         </pure_gain>
 
         <pure_gain name="powerplant-controls/throttle-to-engine">
             <input>systems/powerplant-controls/engine/handles/throttle-norm</input>
             <gain>1.0</gain>
-            <output>/controls/engines/engine[0]/throttle</output>
+            <output>fcs/throttle-cmd-norm[0]</output>
         </pure_gain>
 
         <pure_gain name="powerplant-controls/prop-to-engine">
             <input>systems/powerplant-controls/engine/handles/prop-norm</input>
             <gain>1.0</gain>
-            <output>/controls/engines/engine[0]/propeller-pitch</output>
+            <output>fcs/advance-cmd-norm[0]</output>
         </pure_gain>
     </channel>
 </system>
