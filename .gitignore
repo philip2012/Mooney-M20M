@@ -7,3 +7,6 @@ Mooney-M20M.blend1
 .DS_Store
 
 .venv-jsbsim/
+
+__pycache__/
+*.pyc
