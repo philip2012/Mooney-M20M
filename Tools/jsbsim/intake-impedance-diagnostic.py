@@ -89,23 +89,43 @@ def prepare_test_tree(root, auto_impedance):
 
     engine_file = root / "Engines" / ENGINE_FILE
 
-    if auto_impedance:
-        text = engine_file.read_text()
+    text = engine_file.read_text()
 
-        old = (
-            "    <air-intake-impedance-factor>"
-            "1.0"
-            "</air-intake-impedance-factor>\n"
+    impedance_element = (
+        "    <air-intake-impedance-factor>"
+        "1.0"
+        "</air-intake-impedance-factor>\n"
+    )
+
+    ram_air_element = (
+        "    <ram-air-factor>"
+        "0.2"
+        "</ram-air-factor>\n"
+    )
+
+    # The permanent AF1B baseline now intentionally omits the
+    # impedance element so JSBSim calculates Z_airbox automatically.
+    if text.count(impedance_element) != 0:
+        raise RuntimeError(
+            "repository baseline unexpectedly contains "
+            "explicit intake impedance"
         )
 
-        if text.count(old) != 1:
+    if not auto_impedance:
+        # Reconstruct the old explicit-1.0 configuration only in the
+        # temporary comparison tree.
+        if text.count(ram_air_element) != 1:
             raise RuntimeError(
-                "expected intake impedance element not found exactly once"
+                "expected ram-air element exactly once"
             )
 
-        engine_file.write_text(
-            text.replace(old, "")
+        text = text.replace(
+            ram_air_element,
+            impedance_element + ram_air_element,
+            1,
         )
+
+        engine_file.write_text(text)
 
     return root
 
