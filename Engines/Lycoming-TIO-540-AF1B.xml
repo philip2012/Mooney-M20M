@@ -27,7 +27,6 @@ the Free Software Foundation; either version 2 of the License, or
     <sparkfaildrop>0.08</sparkfaildrop>
     <static-friction unit="HP">6.0</static-friction>
 
-    <air-intake-impedance-factor>1.0</air-intake-impedance-factor>
     <ram-air-factor>0.2</ram-air-factor>
     <cooling-factor>1.0</cooling-factor>
     <man-press-lag>0.2</man-press-lag>
