@@ -113,11 +113,28 @@ the Free Software Foundation; either version 2 of the License, or
             <output>propulsion/magneto_cmd</output>
         </switch>
 
-        <pure_gain name="powerplant-controls/mixture-to-engine">
-            <input>systems/powerplant-controls/engine/handles/mixture-norm</input>
-            <gain>1.0</gain>
+        <!--
+            The AF1B uses airflow-metered fuel injection. JSBSim's piston
+            mixture model internally scales equivalence ratio by
+            standard-pressure / ambient-pressure, so compensate the
+            engine-facing mixture command by ambient pressure / 101325 Pa.
+
+            The pilot-facing mixture handle remains 0..1 and unchanged.
+        -->
+        <fcs_function name="powerplant-controls/mixture-to-engine">
+            <function>
+                <product>
+                    <property>systems/powerplant-controls/engine/handles/mixture-norm</property>
+                    <property>atmosphere/P-psf</property>
+                    <value>0.000472541416</value>
+                </product>
+            </function>
+            <clipto>
+                <min>0.0</min>
+                <max>1.0</max>
+            </clipto>
             <output>fcs/mixture-cmd-norm[0]</output>
-        </pure_gain>
+        </fcs_function>
 
         <pure_gain name="powerplant-controls/throttle-to-engine">
             <input>systems/powerplant-controls/engine/handles/throttle-norm</input>
