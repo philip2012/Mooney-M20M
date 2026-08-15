@@ -63,6 +63,10 @@ VE_PROP = (
     "propulsion/engine[0]/volumetric-efficiency"
 )
 
+VE_CALIBRATED = (
+    BASE + "/ve-calibrated"
+)
+
 MAP = "propulsion/engine[0]/map-inhg"
 RPM = "propulsion/engine[0]/propeller-rpm"
 POWER = "propulsion/engine[0]/power-hp"
@@ -491,6 +495,10 @@ def snapshot(fdm):
             fdm,
             VE_PROP,
         ),
+        "ve_calibrated": get(
+            fdm,
+            VE_CALIBRATED,
+        ),
         "rpm": get(
             fdm,
             RPM,
@@ -678,7 +686,8 @@ with tempfile.TemporaryDirectory() as tmp:
 
 
 print(
-    " Alt  CPfac    RPM    MAP      HP       Lycoming power reference"
+    " Alt  CPfac    RPM    MAP      HP      VE    VEcal  Boost"
+    "    Lycoming power reference"
 )
 print(
     "----------------------------------------------------------------"
@@ -731,7 +740,10 @@ for (
         f"{cp_factor:5.2f}  "
         f"{s['rpm']:7.1f}  "
         f"{s['map']:6.2f}  "
-        f"{s['hp']:7.1f}    "
+        f"{s['hp']:7.1f}  "
+        f"{s['ve']:6.3f}  "
+        f"{s['ve_calibrated']:6.3f}  "
+        f"{s['boost']:5.3f}    "
         f"{reference_text:11s}  "
         f"{comparison_text}"
     )
@@ -763,7 +775,10 @@ for (
         f"blade={s['blade']:.2f}  "
         f"MAP={s['map']:.3f}\"  "
         f"MAPref={map_ref:.3f}\"  "
-        f"HP={s['hp']:.2f}"
+        f"HP={s['hp']:.2f}  "
+        f"VE={s['ve']:.6f}  "
+        f"VEcal={s['ve_calibrated']:.6f}  "
+        f"boost={s['boost']:.6f}"
     )
 
     print(
