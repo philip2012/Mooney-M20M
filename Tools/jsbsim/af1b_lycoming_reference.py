@@ -39,6 +39,16 @@ class MapReferencePoint:
     source: str
 
 
+@dataclass(frozen=True)
+class PowerReferencePoint:
+    altitude_ft: float
+    hp_nominal: float | None
+    hp_min: float | None
+    hp_max: float | None
+    status: str
+    source: str
+
+
 # FAA/Lycoming certification anchor.
 #
 # AF1A/AF1B:
@@ -102,6 +112,50 @@ FIGURE_3_34_POST_CRITICAL_2575 = (
         29.0,
         0.1,
         "Lycoming 60297-23P Figure 3-34",
+    ),
+)
+
+
+# AF1A/AF1B 2575-RPM high-altitude power references.
+#
+# Figure 3-31 is a graphical zero-ram performance chart rather than
+# a numerical data table. Do not assign fake precision to chart reads.
+#
+# 20,000 ft:
+#   exact certification/rated point.
+#
+# 22,000 ft:
+#   approximately 250 HP from Figure 3-31.
+#
+# 24,000 ft:
+#   approximately 225-230 HP from Figure 3-31.
+#
+# Figure 3-31's altitude plot does not provide a defensible 25,000-ft
+# HP point, so none is included here.
+AF1B_2575_POWER_REFERENCE = (
+    PowerReferencePoint(
+        20000.0,
+        270.0,
+        None,
+        None,
+        "exact",
+        "AF1A/AF1B certification rated point",
+    ),
+    PowerReferencePoint(
+        22000.0,
+        250.0,
+        None,
+        None,
+        "approximate-chart-read",
+        "Lycoming 60297-23P Figure 3-31 / Curve 13491",
+    ),
+    PowerReferencePoint(
+        24000.0,
+        None,
+        225.0,
+        230.0,
+        "graphical-range",
+        "Lycoming 60297-23P Figure 3-31 / Curve 13491",
     ),
 )
 
