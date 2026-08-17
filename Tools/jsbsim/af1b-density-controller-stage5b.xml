@@ -1,0 +1,779 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Temporary AF1B density-controller Stage-5B prototype.
+
+THIS IS NOT A PERMANENT AIRCRAFT SYSTEM.
+
+Purpose:
+- evaluate the Lycoming Figure-17 MAP target surrogate
+- evaluate temporary FGPiston VE compensation
+- evaluate static feed-forward throttle limiting
+- verify pilot-throttle minimum routing
+
+No feedback integrator, rate limiting, activation blending,
+or reduced-power VE scheduling is implemented here.
+-->
+
+<system name="af1b-density-controller-stage5b">
+
+    <property value="0">
+        systems/af1b-density-controller/enabled
+    </property>
+
+    <!--
+    VE activation is deliberately separate from throttle-controller
+    activation so diagnostic tests can precondition the FGPiston
+    compensation without simultaneously moving engine throttle.
+
+    Production regime gating will be designed later.
+    -->
+    <property value="0">
+        systems/af1b-density-controller/ve-enabled
+    </property>
+
+
+    <!--
+    Stage-5A maximum-MAP capability layer.
+
+    Diagnostic only.
+
+    OFF:
+        preserve qualified Stage-4B controller behavior.
+
+    ON:
+        limit the controller MAP target to the temporary
+        Lycoming Figure-3-34 ISA capability schedule.
+    -->
+    <property value="0">
+        systems/af1b-density-controller/capability-enabled
+    </property>
+
+
+    <!--
+    Stage-5B diagnostic input.
+
+    The validation harness supplies the candidate non-ISA
+    maximum-MAP value directly.
+
+    This deliberately avoids embedding an unqualified
+    temperature law into the XML candidate.
+    -->
+    <property value="38.0">
+        systems/af1b-density-controller/test-maximum-map-inhg
+    </property>
+
+    <property value="1">
+        systems/af1b-density-controller/constant-one
+    </property>
+
+    <!-- Fixed-point seed. Updated every FCS frame. -->
+    <property value="35.0">
+        systems/af1b-density-controller/target-map-inhg
+    </property>
+
+    <channel name="af1b-static-controller">
+
+        <!-- Ambient pressure: psf -> inHg -->
+        <pure_gain name="systems/af1b-density-controller/ambient-pressure-inhg">
+            <input>atmosphere/P-psf</input>
+            <gain>0.01413903097960689</gain>
+        </pure_gain>
+
+        <!--
+        Figure-17 temperature surrogate:
+
+          Tref,R =
+              Tamb,R *
+              (MAPtarget / Pamb)^(2/7)
+              + 12.23
+
+        target-map-inhg still contains the previous frame's result
+        when this component executes, creating a fixed-point iteration.
+        -->
+        <fcs_function name="systems/af1b-density-controller/figure17-reference-temperature-r">
+            <function>
+                <sum>
+                    <product>
+                        <property>atmosphere/T-R</property>
+                        <pow>
+                            <quotient>
+                                <property>systems/af1b-density-controller/target-map-inhg</property>
+                                <property>systems/af1b-density-controller/ambient-pressure-inhg</property>
+                            </quotient>
+                            <value>0.2857142857142857</value>
+                        </pow>
+                    </product>
+
+                    <value>12.23</value>
+                </sum>
+            </function>
+        </fcs_function>
+
+        <!--
+        Lycoming SI 1187J Figure-17 normal-line surrogate:
+
+          MAP = 32.15 + 0.030 * Tref,F
+        -->
+        <fcs_function name="systems/af1b-density-controller/target-map-inhg">
+            <function>
+                <sum>
+                    <value>32.15</value>
+
+                    <product>
+                        <value>0.030</value>
+
+                        <difference>
+                            <property>systems/af1b-density-controller/figure17-reference-temperature-r</property>
+                            <value>459.67</value>
+                        </difference>
+                    </product>
+                </sum>
+            </function>
+
+            <clipto>
+                <min>30.0</min>
+                <max>38.0</max>
+            </clipto>
+        </fcs_function>
+
+        <!--
+        Stage-5A ISA maximum-MAP capability surrogate.
+
+        Lycoming Figure 3-34 diagnostic schedule:
+
+             0 ft -> 38.0 inHg
+        19,000 ft -> 38.0 inHg
+        20,000 ft -> 36.5 inHg
+        21,000 ft -> 35.0 inHg
+        22,000 ft -> 33.5 inHg
+        23,000 ft -> 32.0 inHg
+        24,000 ft -> 30.5 inHg
+        25,000 ft -> 29.0 inHg
+
+        This is an ISA qualification surrogate only.
+        No non-ISA capability law is asserted here.
+        -->
+        <fcs_function name="systems/af1b-density-controller/maximum-map-inhg">
+            <function>
+                <property>
+                    systems/af1b-density-controller/test-maximum-map-inhg
+                </property>
+            </function>
+        </fcs_function>
+
+        <!--
+        Disabled capability layer presents a harmless 38-inHg
+        ceiling. Figure-17 target-map-inhg is already clipped
+        to a maximum of 38 inHg.
+        -->
+        <switch name="systems/af1b-density-controller/effective-maximum-map-inhg">
+            <default value="38.0"/>
+
+            <test value="systems/af1b-density-controller/maximum-map-inhg">
+                systems/af1b-density-controller/capability-enabled == 1
+            </test>
+        </switch>
+
+        <!--
+        Density-controller demand and turbo capability are
+        deliberately separate concepts.
+
+        Figure-17 density target:
+            target-map-inhg
+
+        Effective throttle-controller target:
+            min(
+                density target,
+                available MAP capability
+            )
+        -->
+        <fcs_function name="systems/af1b-density-controller/controller-target-map-inhg">
+            <function>
+                <min>
+                    <property>
+                        systems/af1b-density-controller/target-map-inhg
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/effective-maximum-map-inhg
+                    </property>
+                </min>
+            </function>
+        </fcs_function>
+
+
+        <!--
+        Temporary FGPiston compensation coordinates:
+
+          x = (Tamb,R - 500) / 100
+          m = Pamb / MAPtarget
+        -->
+        <fcs_function name="systems/af1b-density-controller/ve-x">
+            <function>
+                <quotient>
+                    <difference>
+                        <property>atmosphere/T-R</property>
+                        <value>500.0</value>
+                    </difference>
+
+                    <value>100.0</value>
+                </quotient>
+            </function>
+        </fcs_function>
+
+        <fcs_function name="systems/af1b-density-controller/ve-m">
+            <function>
+                <quotient>
+                    <property>systems/af1b-density-controller/ambient-pressure-inhg</property>
+                    <property>systems/af1b-density-controller/target-map-inhg</property>
+                </quotient>
+            </function>
+        </fcs_function>
+
+        <!--
+        Temporary empirical FGPiston compensation surface:
+
+          VE =
+              0.56412103
+            + 0.37457390*m
+            - 0.05280825*m^2
+            + 0.08601217*x
+            + 0.01277322*x*m
+            + 0.00986585*x^2
+
+        This is NOT asserted to be physical Lycoming VE.
+        -->
+        <fcs_function name="systems/af1b-density-controller/ve-calibrated">
+            <function>
+                <sum>
+                    <value>0.56412103</value>
+
+                    <product>
+                        <value>0.37457390</value>
+                        <property>systems/af1b-density-controller/ve-m</property>
+                    </product>
+
+                    <product>
+                        <value>-0.05280825</value>
+
+                        <pow>
+                            <property>systems/af1b-density-controller/ve-m</property>
+                            <value>2.0</value>
+                        </pow>
+                    </product>
+
+                    <product>
+                        <value>0.08601217</value>
+                        <property>systems/af1b-density-controller/ve-x</property>
+                    </product>
+
+                    <product>
+                        <value>0.01277322</value>
+                        <property>systems/af1b-density-controller/ve-x</property>
+                        <property>systems/af1b-density-controller/ve-m</property>
+                    </product>
+
+                    <product>
+                        <value>0.00986585</value>
+
+                        <pow>
+                            <property>systems/af1b-density-controller/ve-x</property>
+                            <value>2.0</value>
+                        </pow>
+                    </product>
+                </sum>
+            </function>
+
+            <clipto>
+                <min>0.55</min>
+                <max>0.92</max>
+            </clipto>
+        </fcs_function>
+
+        <!--
+        Stage-3A VE regime scheduling.
+
+        The empirical VE surface above remains the full-power
+        calibration target. Do not extrapolate that polynomial
+        directly into reduced-power operation.
+
+        Instead, blend from native VE = 0.90 toward the calibrated
+        VE according to how much manifold boost is actually present.
+
+            boost_fraction =
+                (MAP - Pamb)
+                /
+                (MAPtarget - Pamb)
+
+        boost_fraction is clipped to 0..1.
+
+        Because FCS systems execute before propulsion, actual MAP
+        here is from the previously completed propulsion frame.
+        That one-frame (~8.33 ms at 120 Hz) scheduling latency is
+        intentional for this diagnostic.
+        -->
+
+        <fcs_function name="systems/af1b-density-controller/ve-boost-span-inhg">
+            <function>
+                <difference>
+                    <property>
+                        systems/af1b-density-controller/target-map-inhg
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/ambient-pressure-inhg
+                    </property>
+                </difference>
+            </function>
+
+            <!--
+            Avoid a pathological zero denominator. The present
+            above-sea-level AF1B test envelope has a substantially
+            positive boost span, so this floor should be inactive
+            during normal Stage-3A qualification.
+            -->
+            <clipto>
+                <min>0.10</min>
+                <max>100.0</max>
+            </clipto>
+        </fcs_function>
+
+        <fcs_function name="systems/af1b-density-controller/ve-boost-fraction">
+            <function>
+                <quotient>
+                    <difference>
+                        <property>
+                            propulsion/engine[0]/map-inhg
+                        </property>
+
+                        <property>
+                            systems/af1b-density-controller/ambient-pressure-inhg
+                        </property>
+                    </difference>
+
+                    <property>
+                        systems/af1b-density-controller/ve-boost-span-inhg
+                    </property>
+                </quotient>
+            </function>
+
+            <clipto>
+                <min>0.0</min>
+                <max>1.0</max>
+            </clipto>
+        </fcs_function>
+
+        <!--
+        Stage-4B post-critical VE schedule.
+
+        Stage-3A used boost_fraction directly as the blend gain:
+
+            VE =
+                0.90
+                + boost_fraction * (VEcal - 0.90)
+
+        Lycoming Figure 3-31 validation showed that this returns toward
+        native VE too aggressively after turbo authority is exhausted,
+        retaining excessive brake horsepower.
+
+        Stage-4B diagnostic candidate:
+
+            gain =
+                0.5
+                + 0.5 * boost_fraction
+
+            VE =
+                0.90
+                + gain * (VEcal - 0.90)
+
+        Properties:
+        - boost_fraction = 1 -> VE = VEcal exactly
+        - continuous through the critical-altitude transition
+        - no binary authority selector
+        - no altitude lookup table
+        - 0.62 is a provisional calibration coefficient, not asserted
+          to represent physical volumetric efficiency behavior
+        -->
+        <fcs_function name="systems/af1b-density-controller/ve-scheduled">
+            <function>
+                <sum>
+                    <value>0.90</value>
+
+                    <product>
+                        <sum>
+                            <property>
+                                systems/af1b-density-controller/ve-boost-fraction
+                            </property>
+
+                            <product>
+                                <value>0.62</value>
+
+                                <property>
+                                    systems/af1b-density-controller/ve-boost-fraction
+                                </property>
+
+                                <difference>
+                                    <value>1.0</value>
+
+                                    <property>
+                                        systems/af1b-density-controller/ve-boost-fraction
+                                    </property>
+                                </difference>
+                            </product>
+                        </sum>
+
+                        <difference>
+                            <property>
+                                systems/af1b-density-controller/ve-calibrated
+                            </property>
+
+                            <value>0.90</value>
+                        </difference>
+                    </product>
+                </sum>
+            </function>
+
+            <clipto>
+                <min>0.55</min>
+                <max>0.92</max>
+            </clipto>
+        </fcs_function>
+
+        <!--
+        Disabled:
+            preserve permanent engine VE = 0.90
+
+        Enabled:
+            apply temporary full-power compensation.
+        -->
+        <switch name="systems/af1b-density-controller/ve-command">
+            <default value="0.90"/>
+
+            <test value="systems/af1b-density-controller/ve-scheduled">
+                systems/af1b-density-controller/ve-enabled == 1
+            </test>
+
+            <output>propulsion/engine[0]/volumetric-efficiency</output>
+        </switch>
+
+        <!--
+        Static feed-forward estimate:
+
+          cap = 0.43 + 0.19 * (MAPtarget / Pamb)
+        -->
+        <fcs_function name="systems/af1b-density-controller/feedforward-cap-norm">
+            <function>
+                <sum>
+                    <value>0.43</value>
+
+                    <product>
+                        <value>0.19</value>
+
+                        <quotient>
+                            <property>systems/af1b-density-controller/controller-target-map-inhg</property>
+                            <property>systems/af1b-density-controller/ambient-pressure-inhg</property>
+                        </quotient>
+                    </product>
+                </sum>
+            </function>
+
+            <clipto>
+                <min>0.25</min>
+                <max>1.0</max>
+            </clipto>
+        </fcs_function>
+
+        <!--
+        Feedback timing/reset control.
+
+        Disabled:
+            trigger = -1
+            timer and integral reset to zero.
+
+        Enabled:
+            trigger = 0
+            timer/integral may run.
+        -->
+        <!--
+        Density-controller feedback is authoritative only when the
+        pilot is demanding at least the controller cap.
+
+        If pilot throttle is below the cap, the density controller is
+        not governing engine throttle and must not integrate the
+        resulting low-MAP error as though it were an undersupply fault.
+
+        controller-cap-norm is read from the previous completed FCS
+        frame here. That one-frame state relationship is intentional.
+        -->
+        <fcs_function name="systems/af1b-density-controller/governing-margin-norm">
+            <function>
+                <difference>
+                    <property>
+                        systems/powerplant-controls/engine/handles/throttle-norm
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/controller-cap-norm
+                    </property>
+                </difference>
+            </function>
+        </fcs_function>
+
+        <switch name="systems/af1b-density-controller/feedback-governing">
+            <default value="0"/>
+
+            <test value="1" logic="AND">
+                systems/af1b-density-controller/enabled == 1
+                systems/af1b-density-controller/governing-margin-norm > -0.001
+            </test>
+        </switch>
+
+        <switch name="systems/af1b-density-controller/feedback-reset-trigger">
+            <default value="-1"/>
+
+            <test value="0">
+                systems/af1b-density-controller/enabled == 1
+            </test>
+        </switch>
+
+        <!--
+        Delay timing is valid only while the density controller
+        continuously owns throttle authority.
+
+        -1 resets the delay integrator.
+         0 allows it to count.
+        -->
+        <switch name="systems/af1b-density-controller/feedback-delay-reset-trigger">
+            <default value="-1"/>
+
+            <test value="0" logic="AND">
+                systems/af1b-density-controller/enabled == 1
+                systems/af1b-density-controller/governing-margin-norm > -0.001
+            </test>
+        </switch>
+
+        <!--
+        Reproduce the diagnostic 1.5-second bumpless feedback delay.
+
+        The feed-forward cap remains active during this interval.
+        -->
+        <integrator name="systems/af1b-density-controller/feedback-delay-sec">
+            <input>systems/af1b-density-controller/constant-one</input>
+            <c1 type="rect">1.0</c1>
+
+            <trigger>
+                systems/af1b-density-controller/feedback-delay-reset-trigger
+            </trigger>
+
+            <clipto>
+                <min>0.0</min>
+                <max>1.5</max>
+            </clipto>
+        </integrator>
+
+        <switch name="systems/af1b-density-controller/feedback-ready">
+            <default value="0"/>
+
+            <test value="1" logic="AND">
+                systems/af1b-density-controller/enabled == 1
+                systems/af1b-density-controller/governing-margin-norm > -0.001
+                systems/af1b-density-controller/feedback-delay-sec > 1.499
+            </test>
+        </switch>
+
+        <!-- MAP error is positive when more throttle is required. -->
+        <fcs_function name="systems/af1b-density-controller/map-error-inhg">
+            <function>
+                <difference>
+                    <property>systems/af1b-density-controller/controller-target-map-inhg</property>
+                    <property>propulsion/engine[0]/map-inhg</property>
+                </difference>
+            </function>
+        </fcs_function>
+
+        <!-- Suppress feedback during the bumpless-delay interval. -->
+        <switch name="systems/af1b-density-controller/feedback-error-gated">
+            <default value="0"/>
+
+            <test value="systems/af1b-density-controller/map-error-inhg"
+                  logic="AND">
+                systems/af1b-density-controller/feedback-ready == 1
+                systems/af1b-density-controller/feedback-governing == 1
+            </test>
+        </switch>
+
+        <!--
+        Pre-integrator controller request.
+
+        This deliberately uses the integral state from the previously
+        completed controller component evaluation. It is NOT clipped,
+        because directional anti-windup must know whether the controller
+        is attempting to drive beyond its usable throttle-cap range.
+        -->
+        <fcs_function name="systems/af1b-density-controller/pre-integrator-controller-request-norm">
+            <function>
+                <sum>
+                    <property>
+                        systems/af1b-density-controller/feedforward-cap-norm
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/feedback-integral-norm
+                    </property>
+                </sum>
+            </function>
+        </fcs_function>
+
+        <!--
+        Upper directional anti-windup.
+
+        Freeze only when the controller is already at/above its upper
+        requested limit AND the MAP error is still asking for more
+        throttle.
+
+        If the MAP error reverses sign, integration is immediately
+        allowed again so the controller can unwind away from saturation.
+        -->
+        <switch name="systems/af1b-density-controller/antiwindup-upper">
+            <default value="0"/>
+
+            <test value="1" logic="AND">
+                systems/af1b-density-controller/enabled == 1
+                systems/af1b-density-controller/feedback-ready == 1
+                systems/af1b-density-controller/feedback-governing == 1
+                systems/af1b-density-controller/pre-integrator-controller-request-norm > 0.999999
+                systems/af1b-density-controller/map-error-inhg > 0.0
+            </test>
+        </switch>
+
+        <!--
+        JSBSim integrator trigger semantics:
+
+           negative -> reset integral
+           zero     -> integrate normally
+           positive -> hold/freeze integral
+
+        Controller disable therefore retains the existing reset behavior,
+        while upper outward saturation freezes without destroying the
+        accumulated trim state.
+
+        No lower directional anti-windup is required in the current
+        controller envelope. Feed-forward remains sufficiently above the
+        0.25 cap floor that the -0.25 integral limit cannot reach lower
+        saturation in the intended above-sea-level operating regime.
+        -->
+        <switch name="systems/af1b-density-controller/feedback-integrator-trigger">
+            <default value="-1"/>
+
+            <test value="1">
+                systems/af1b-density-controller/antiwindup-upper == 1
+            </test>
+
+            <test value="0">
+                systems/af1b-density-controller/enabled == 1
+            </test>
+        </switch>
+
+        <!--
+        Slow diagnostic trim:
+
+            integral += 0.020 * MAP_error * dt
+
+        This remains a model-calibration gain, not claimed AF1B
+        density-controller hardware data.
+        -->
+        <integrator name="systems/af1b-density-controller/feedback-integral-norm">
+            <input>
+                systems/af1b-density-controller/feedback-error-gated
+            </input>
+
+            <c1 type="rect">0.020</c1>
+
+            <trigger>
+                systems/af1b-density-controller/feedback-integrator-trigger
+            </trigger>
+
+            <clipto>
+                <min>-0.25</min>
+                <max>0.25</max>
+            </clipto>
+        </integrator>
+
+        <fcs_function name="systems/af1b-density-controller/raw-controller-cap-norm">
+            <function>
+                <sum>
+                    <property>
+                        systems/af1b-density-controller/feedforward-cap-norm
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/feedback-integral-norm
+                    </property>
+                </sum>
+            </function>
+
+            <clipto>
+                <min>0.25</min>
+                <max>1.0</max>
+            </clipto>
+        </fcs_function>
+
+        <!--
+        Controller-cap actuator.
+
+        0.25 -> 1.00 over 2.142857142857 s gives a constant
+        rate of 0.35 normalized throttle units per second.
+        -->
+        <kinematic name="systems/af1b-density-controller/controller-cap-norm">
+            <input>
+                systems/af1b-density-controller/raw-controller-cap-norm
+            </input>
+
+            <noscale/>
+
+            <traverse>
+                <setting>
+                    <position>0.25</position>
+                    <time>0.0</time>
+                </setting>
+
+                <setting>
+                    <position>1.0</position>
+                    <time>2.142857142857143</time>
+                </setting>
+            </traverse>
+
+            <clipto>
+                <min>0.25</min>
+                <max>1.0</max>
+            </clipto>
+        </kinematic>
+
+        <!-- Controller is a CAP, never an independent throttle command. -->
+        <fcs_function name="systems/af1b-density-controller/limited-throttle-norm">
+            <function>
+                <min>
+                    <property>systems/powerplant-controls/engine/handles/throttle-norm</property>
+                    <property>systems/af1b-density-controller/controller-cap-norm</property>
+                </min>
+            </function>
+        </fcs_function>
+
+        <!--
+        Disabled: pilot throttle passes through unchanged.
+        Enabled: engine sees min(pilot throttle, controller cap).
+        -->
+        <switch name="systems/af1b-density-controller/engine-throttle-command-norm">
+            <default value="systems/powerplant-controls/engine/handles/throttle-norm"/>
+
+            <test value="systems/af1b-density-controller/limited-throttle-norm">
+                systems/af1b-density-controller/enabled == 1
+            </test>
+
+            <output>fcs/throttle-cmd-norm[0]</output>
+        </switch>
+
+    </channel>
+
+</system>
