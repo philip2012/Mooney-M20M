@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Copyright (C) 2026 Philips Nguyen
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+-->
+
+<system name="powerplant-controls">
+    <!-- init properties-->
+    <property value="0">systems/powerplant-controls/engine/handles/throttle-norm</property>
+    <property value="0">systems/powerplant-controls/engine/handles/mixture-norm</property>
+    <property value="1">systems/powerplant-controls/engine/handles/prop-norm</property>
+
+    <property value="0">systems/powerplant-controls/engine/switches/starter</property>
+    <property value="0">systems/powerplant-controls/engine/switches/magnetos</property>
+
+    <property value="0">systems/powerplant-controls/engine/states/starter-engaged</property>
+    <property value="0">systems/powerplant-controls/engine/states/ignition-enabled</property>
+    <property value="0">systems/powerplant-controls/engine/states/fuel-enabled</property>
+    <property value="0">systems/powerplant-controls/engine/states/start-allowed</property>
+
+    <property value="0">systems/powerplant-controls/electrical/switches/battery-master</property>
+    <property value="0">systems/powerplant-controls/electrical/states/power-available</property>
+
+    <property value="0">systems/powerplant-controls/electrical/switches/alternator</property>
+    <property value="0">systems/powerplant-controls/electrical/states/generation-available</property>
+
+    <channel name="generation-logic">
+        <switch name="powerplant-controls/generation-available">
+            <default value="0" />
+            <test value="1" logic="AND">
+                systems/powerplant-controls/electrical/switches/alternator == 1
+                propulsion/engine[0]/set-running == 1
+            </test>
+            <output>systems/powerplant-controls/electrical/states/generation-available</output>
+        </switch>
+    </channel>
+
+    <channel name="electrical-logic">
+        <switch name="powerplant-controls/power-available">
+            <default value="0" />
+            <test value="1" logic="OR">
+                systems/powerplant-controls/electrical/switches/battery-master == 1
+                systems/powerplant-controls/electrical/states/generation-available == 1
+            </test>
+            <output>systems/powerplant-controls/electrical/states/power-available</output>
+        </switch>
+    </channel>
+
+    <channel name="ignition-logic">
+        <switch name="powerplant-controls/ignition-enabled">
+            <default value="0" />
+            <test value="1">
+                systems/powerplant-controls/engine/switches/magnetos > 0
+            </test>
+            <output>systems/powerplant-controls/engine/states/ignition-enabled</output>
+        </switch>
+    </channel>
+
+    <channel name="fuel-logic">
+        <switch name="powerplant-controls/fuel-enabled">
+            <default value="0" />
+            <test value="1">
+                systems/powerplant-controls/engine/handles/mixture-norm > 0.1
+            </test>
+            <output>systems/powerplant-controls/engine/states/fuel-enabled</output>
+        </switch>
+    </channel>
+
+    <channel name="starter-logic">
+        <switch name="powerplant-controls/starter-engaged">
+            <default value="0" />
+            <test value="1">
+                systems/powerplant-controls/engine/switches/starter == 1
+            </test>
+            <output>systems/powerplant-controls/engine/states/starter-engaged</output>
+        </switch>
+        <switch name="powerplant-controls/start-allowed">
+            <default value="0" />
+            <test value="1" logic="AND">
+                systems/powerplant-controls/engine/states/starter-engaged == 1
+                systems/powerplant-controls/engine/states/ignition-enabled == 1
+                systems/powerplant-controls/engine/states/fuel-enabled == 1
+                systems/powerplant-controls/electrical/states/power-available == 1
+            </test>
+            <output>systems/powerplant-controls/engine/states/start-allowed</output>
+        </switch>
+    </channel>
+
+    <channel name="output-routing">
+        <switch name="powerplant-controls/starter-to-engine">
+            <default value="0" />
+            <test value="1">
+                systems/powerplant-controls/engine/states/start-allowed == 1
+            </test>
+            <output>propulsion/starter_cmd</output>
+        </switch>
+        <switch name="powerplant-controls/magnetos-to-engine">
+            <default value="0" />
+            <test value="1">
+                systems/powerplant-controls/engine/switches/magnetos == 1
+            </test>
+            <test value="2">
+                systems/powerplant-controls/engine/switches/magnetos == 2
+            </test>
+            <test value="3">
+                systems/powerplant-controls/engine/switches/magnetos == 3
+            </test>
+            <output>propulsion/magneto_cmd</output>
+        </switch>
+
+        <!--
+            The AF1B uses airflow-metered fuel injection. JSBSim's piston
+            mixture model internally scales equivalence ratio by
+            standard-pressure / ambient-pressure, so compensate the
+            engine-facing mixture command by ambient pressure / 101325 Pa.
+
+            The pilot-facing mixture handle remains 0..1 and unchanged.
+        -->
+        <fcs_function name="powerplant-controls/mixture-to-engine">
+            <function>
+                <product>
+                    <property>systems/powerplant-controls/engine/handles/mixture-norm</property>
+                    <property>atmosphere/P-psf</property>
+                    <value>0.000472541416</value>
+                </product>
+            </function>
+            <clipto>
+                <min>0.0</min>
+                <max>1.0</max>
+            </clipto>
+            <output>fcs/mixture-cmd-norm[0]</output>
+        </fcs_function>
+
+        <!--
+        Final engine-throttle bridge.
+
+        powerplant-controls remains the sole owner of
+        fcs/throttle-cmd-norm[0].
+
+        The AF1B controller publishes only a maximum allowable
+        throttle position. Pilot throttle remains authoritative
+        whenever it is below that limit.
+        -->
+        <fcs_function name="powerplant-controls/throttle-to-engine">
+            <function>
+                <min>
+                    <property>
+                        systems/powerplant-controls/engine/handles/throttle-norm
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/throttle-limit-norm
+                    </property>
+                </min>
+            </function>
+
+            <output>fcs/throttle-cmd-norm[0]</output>
+        </fcs_function>
+
+        <pure_gain name="powerplant-controls/prop-to-engine">
+            <input>systems/powerplant-controls/engine/handles/prop-norm</input>
+            <gain>1.0</gain>
+            <output>fcs/advance-cmd-norm[0]</output>
+        </pure_gain>
+    </channel>
+</system>
