@@ -19,12 +19,12 @@ state_init.requires_running = func(state_name) {
 
 state_init.finalize_running_state = func(state_name) {
     # Always make sure the starter is released.
-    setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+    setprop("/controls/engines/engine[0]/starter", 0);
 
     # Keep this minimal for now.
     if (state_name == "take-off") {
         # After engine runs, reduce throttle to idle and release brakes for rolling take-off
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
+        setprop("/controls/engines/engine[0]/throttle", 0);
         setprop("/controls/gears/brake-parking", 0);
 
         # Engine is up now, so electrical generation should be available.
@@ -34,9 +34,9 @@ state_init.finalize_running_state = func(state_name) {
         # Selector 1 is the equivalent to 10 degree detent.
         setprop("/fdm/jsbsim/systems/airframe-controls/flaps/selector", 1);
     } elsif (state_name == "approach") {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
+        setprop("/controls/engines/engine[0]/throttle", 0.425);
+        setprop("/controls/engines/engine[0]/mixture", 1);
+        setprop("/controls/engines/engine[0]/propeller-pitch", 1);
     }
 };
 
@@ -48,15 +48,15 @@ state_init.poll_until_stable_running = func(state_name, remaining) {
     }
 
     if (remaining <= 0) {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+        setprop("/controls/engines/engine[0]/starter", 0);
 
         if (state_name == "take-off") {
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
+            setprop("/controls/engines/engine[0]/throttle", 0);
             setprop("/controls/gears/brake-parking", 0);
         } elsif (state_name == "approach") {
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
+            setprop("/controls/engines/engine[0]/throttle", 0.425);
+            setprop("/controls/engines/engine[0]/mixture", 1);
+            setprop("/controls/engines/engine[0]/propeller-pitch", 1);
         }
 
         state_init.active = 0;
@@ -70,7 +70,7 @@ state_init.poll_until_stable_running = func(state_name, remaining) {
 
 state_init.poll_until_running = func(state_name, remaining) {
     if (getprop("/engines/engine[0]/running", 0) == 1) {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+        setprop("/controls/engines/engine[0]/starter", 0);
 
         settimer(func(){
             state_init.poll_until_stable_running(state_name, 20);
@@ -80,15 +80,15 @@ state_init.poll_until_running = func(state_name, remaining) {
 
     if (remaining <= 0) {
         # Give up cleanly instead of leaving the starter held forever.
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 0);
+        setprop("/controls/engines/engine[0]/starter", 0);
 
         if (state_name == "take-off") {
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0);
+            setprop("/controls/engines/engine[0]/throttle", 0);
             setprop("/controls/gears/brake-parking", 0);
         } elsif (state_name == "approach") {
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.425);
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
-            setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
+            setprop("/controls/engines/engine[0]/throttle", 0.425);
+            setprop("/controls/engines/engine[0]/mixture", 1);
+            setprop("/controls/engines/engine[0]/propeller-pitch", 1);
         }
         state_init.active = 0;
         return;
@@ -115,16 +115,16 @@ state_init.arm_running_state = func(state_name) {
 
     # if the aircraft state is for take off, start the engine by adding a bit of throttle and set parking brake so it doesn't drift
     if (state_name == "take-off") {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.2);
+        setprop("/controls/engines/engine[0]/throttle", 0.2);
         setprop("/controls/gears/brake-parking", 1);
     } elsif (state_name == "approach") {
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm", 0.3);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm", 1);
-        setprop("/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm", 1);
+        setprop("/controls/engines/engine[0]/throttle", 0.3);
+        setprop("/controls/engines/engine[0]/mixture", 1);
+        setprop("/controls/engines/engine[0]/propeller-pitch", 1);
     }
 
     # Runtime part only. Static setup belongs in the overlay.
-    setprop("/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter", 1);
+    setprop("/controls/engines/engine[0]/starter", 1);
 
     # Poll for up to ~8 seconds.
     state_init.poll_until_running(state_name, 80);

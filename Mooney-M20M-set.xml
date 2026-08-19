@@ -118,6 +118,11 @@ the Free Software Foundation; either version 2 of the License, or
 
         <!-- FlightGear-facing aircraft property outputs -->
         <systems>
+            <property-rule n="100">
+                <name>Powerplant Inputs</name>
+                <path>Systems/powerplant-inputs.xml</path>
+            </property-rule>
+
             <property-rule n="101">
                 <name>Electrical Outputs</name>
                 <path>Systems/electrical-outputs.xml</path>
@@ -182,7 +187,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Set throttle to full</desc>
                 <binding>
                     <command>property-assign</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm</property>
+                    <property>/controls/engines/engine[0]/throttle</property>
                     <value type="double">1.0</value>
                 </binding>
             </key>
@@ -192,7 +197,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Set throttle to idle</desc>
                 <binding>
                     <command>property-assign</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm</property>
+                    <property>/controls/engines/engine[0]/throttle</property>
                     <value type="double">0.0</value>
                 </binding>
             </key>
@@ -237,13 +242,13 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Hold starter through local powerplant system</desc>
                 <binding>
                     <command>property-assign</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter</property>
+                    <property>/controls/engines/engine[0]/starter</property>
                     <value type="int">1</value>
                 </binding>
                 <mod-up>
                     <binding>
                         <command>property-assign</command>
-                        <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/starter</property>
+                        <property>/controls/engines/engine[0]/starter</property>
                         <value type="int">0</value>
                     </binding>
                 </mod-up>
@@ -255,7 +260,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <repeatable type="bool">true</repeatable>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm</property>
+                    <property>/controls/engines/engine[0]/mixture</property>
                     <step type="double">0.05</step>
                     <min type="double">0.0</min>
                     <max type="double">1.0</max>
@@ -268,7 +273,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <repeatable type="bool">true</repeatable>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/mixture-norm</property>
+                    <property>/controls/engines/engine[0]/mixture</property>
                     <step type="double">-0.05</step>
                     <min type="double">0.0</min>
                     <max type="double">1.0</max>
@@ -280,7 +285,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Magnetos up one position (local)</desc>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/magnetos</property>
+                    <property>/controls/engines/engine[0]/magnetos</property>
                     <step type="int">1</step>
                     <min type="int">0</min>
                     <max type="int">3</max>
@@ -292,7 +297,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <desc>Magnetos down one position (local)</desc>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/switches/magnetos</property>
+                    <property>/controls/engines/engine[0]/magnetos</property>
                     <step type="int">-1</step>
                     <min type="int">0</min>
                     <max type="int">3</max>
@@ -305,7 +310,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <repeatable type="bool">true</repeatable>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm</property>
+                    <property>/controls/engines/engine[0]/propeller-pitch</property>
                     <step type="double">0.05</step>
                     <min type="double">0.0</min>
                     <max type="double">1.0</max>
@@ -318,7 +323,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <repeatable type="bool">true</repeatable>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/prop-norm</property>
+                    <property>/controls/engines/engine[0]/propeller-pitch</property>
                     <step type="double">-0.05</step>
                     <min type="double">0.0</min>
                     <max type="double">1.0</max>
@@ -353,7 +358,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <repeatable type="bool">true</repeatable>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm</property>
+                    <property>/controls/engines/engine[0]/throttle</property>
                     <step type="double">0.05</step>
                     <min type="double">0.0</min>
                     <max type="double">1.0</max>
@@ -366,7 +371,7 @@ the Free Software Foundation; either version 2 of the License, or
                 <repeatable type="bool">true</repeatable>
                 <binding>
                     <command>property-adjust</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/engine/handles/throttle-norm</property>
+                    <property>/controls/engines/engine[0]/throttle</property>
                     <step type="double">-0.05</step>
                     <min type="double">0.0</min>
                     <max type="double">1.0</max>

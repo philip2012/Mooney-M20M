@@ -15,22 +15,29 @@ the Free Software Foundation; either version 2 of the License, or
     <description type="string">Parked, cold and dark.</description>
 
     <overlay>
+
+        <controls>
+            <engines>
+                <engine n="0">
+                    <throttle type="double">0.0</throttle>
+                    <mixture type="double">0.0</mixture>
+                    <propeller-pitch type="double">1.0</propeller-pitch>
+                    <starter type="bool">false</starter>
+                    <magnetos type="int">0</magnetos>
+                </engine>
+            </engines>
+            <lighting>
+                <nav-lights type="bool">false</nav-lights>
+                <beacon type="bool">false</beacon>
+                <strobe type="bool">false</strobe>
+                <landing-lights type="bool">false</landing-lights>
+                <taxi-light type="bool">false</taxi-light>
+            </lighting>
+        </controls>
         <fdm>
             <jsbsim>
                 <systems>
                     <powerplant-controls>
-                        <engine>
-                            <handles>
-                                <throttle-norm type="double">0.0</throttle-norm>
-                                <mixture-norm type="double">0.0</mixture-norm>
-                                <prop-norm type="double">1.0</prop-norm>
-                            </handles>
-
-                            <switches>
-                                <starter type="int">0</starter>
-                                <magnetos type="int">0</magnetos>
-                            </switches>
-                        </engine>
 
                         <electrical>
                             <switches>

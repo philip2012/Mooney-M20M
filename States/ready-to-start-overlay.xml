@@ -15,22 +15,22 @@ the Free Software Foundation; either version 2 of the License, or
     <description type="string">Engine off, configured for immediate startup.</description>
 
     <overlay>
+
+        <controls>
+            <engines>
+                <engine n="0">
+                    <throttle type="double">0.12</throttle>
+                    <mixture type="double">1.0</mixture>
+                    <propeller-pitch type="double">1.0</propeller-pitch>
+                    <starter type="bool">false</starter>
+                    <magnetos type="int">3</magnetos>
+                </engine>
+            </engines>
+        </controls>
         <fdm>
             <jsbsim>
                 <systems>
                     <powerplant-controls>
-                        <engine>
-                            <handles>
-                                <throttle-norm type="double">0.12</throttle-norm>
-                                <mixture-norm type="double">1.0</mixture-norm>
-                                <prop-norm type="double">1.0</prop-norm>
-                            </handles>
-
-                            <switches>
-                                <starter type="int">0</starter>
-                                <magnetos type="int">3</magnetos>
-                            </switches>
-                        </engine>
 
                         <electrical>
                             <switches>
