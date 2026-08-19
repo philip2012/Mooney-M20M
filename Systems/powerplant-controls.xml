@@ -136,11 +136,31 @@ the Free Software Foundation; either version 2 of the License, or
             <output>fcs/mixture-cmd-norm[0]</output>
         </fcs_function>
 
-        <pure_gain name="powerplant-controls/throttle-to-engine">
-            <input>systems/powerplant-controls/engine/handles/throttle-norm</input>
-            <gain>1.0</gain>
+        <!--
+        Final engine-throttle bridge.
+
+        powerplant-controls remains the sole owner of
+        fcs/throttle-cmd-norm[0].
+
+        The AF1B controller publishes only a maximum allowable
+        throttle position. Pilot throttle remains authoritative
+        whenever it is below that limit.
+        -->
+        <fcs_function name="powerplant-controls/throttle-to-engine">
+            <function>
+                <min>
+                    <property>
+                        systems/powerplant-controls/engine/handles/throttle-norm
+                    </property>
+
+                    <property>
+                        systems/af1b-density-controller/throttle-limit-norm
+                    </property>
+                </min>
+            </function>
+
             <output>fcs/throttle-cmd-norm[0]</output>
-        </pure_gain>
+        </fcs_function>
 
         <pure_gain name="powerplant-controls/prop-to-engine">
             <input>systems/powerplant-controls/engine/handles/prop-norm</input>

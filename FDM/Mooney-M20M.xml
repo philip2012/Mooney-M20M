@@ -31,6 +31,7 @@ the Free Software Foundation; either version 2 of the License, or
 
     <!-- systems-->
     <system file="airframe-controls" />
+    <system file="af1b-density-controller" />
     <system file="powerplant-controls" />
 
 </fdm_config>
