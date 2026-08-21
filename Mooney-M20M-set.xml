@@ -50,7 +50,6 @@ the Free Software Foundation; either version 2 of the License, or
         <flight-model>jsb</flight-model>
         <aero>FDM/Mooney-M20M</aero>
 
-        <primary-set type="bool">true</primary-set>
         <status>alpha</status>
         <rating>
             <FDM type="int">2</FDM>
