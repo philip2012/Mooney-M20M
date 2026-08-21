@@ -10,3 +10,6 @@ Mooney-M20M.blend1
 
 __pycache__/
 *.pyc
+
+# Copyrighted development reference material; not distributed
+Blender/Reference/3-view.png
