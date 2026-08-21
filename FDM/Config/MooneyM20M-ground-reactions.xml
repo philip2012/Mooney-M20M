@@ -12,7 +12,7 @@ the Free Software Foundation; either version 2 of the License, or
 <ground_reactions>
     <contact type="BOGEY" name="nose">
         <location unit="IN">
-            <x>-21.52</x>
+            <x>-13.000</x>
             <y>0.0</y>
             <z>-51.0</z>
         </location>
@@ -73,7 +73,7 @@ the Free Software Foundation; either version 2 of the License, or
 
     <contact type="BOGEY" name="left-main">
         <location unit="IN">
-            <x>58.05</x>
+            <x>66.563</x>
             <y>-55.0</y>
             <z>-51.0</z>
         </location>
@@ -135,7 +135,7 @@ the Free Software Foundation; either version 2 of the License, or
 
     <contact type="BOGEY" name="right-main">
         <location unit="IN">
-            <x>58.05</x>
+            <x>66.563</x>
             <y>55.0</y>
             <z>-51.0</z>
         </location>
