@@ -180,6 +180,21 @@ the Free Software Foundation; either version 2 of the License, or
         </m20>
     </nasal>
 
+    <!-- Gear related stuff -->
+    <gear>
+        <gear n="0">
+            <max-compression-ft type="double">0.07733</max-compression-ft>
+        </gear>
+
+        <gear n="1">
+            <max-compression-ft type="double">0.07733</max-compression-ft>
+        </gear>
+
+        <gear n="2">
+            <max-compression-ft type="double">0.07733</max-compression-ft>
+        </gear>
+    </gear>
+
     <input n="0">
         <keyboard>
             <key n="102">
