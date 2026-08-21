@@ -1,3 +1,13 @@
+# Legacy FlightGear Canvas MAP implementation.
+#
+# Derived from the FlightGear Mirage-2000 / C-160 Transall MAP
+# implementations and adapted for the Mooney M20M Bravo.
+#
+# Upstream aircraft packages are distributed under the GNU GPL v2.
+# Original upstream attribution includes: "thanks to Harbal1".
+#
+# Adapted/restored for this aircraft by Philips Nguyen, 2026.
+
 print("*** LOADING MAP.nas ... ***");
 var zoom   = 10;
 var width  = 768;
