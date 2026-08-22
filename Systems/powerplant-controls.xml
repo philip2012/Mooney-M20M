@@ -19,6 +19,7 @@ the Free Software Foundation; either version 2 of the License, or
     <property value="0">systems/powerplant-controls/engine/switches/magnetos</property>
 
     <property value="0">systems/powerplant-controls/engine/states/starter-engaged</property>
+    <property value="0">systems/powerplant-controls/engine/states/starter-powered</property>
     <property value="0">systems/powerplant-controls/engine/states/ignition-enabled</property>
     <property value="0">systems/powerplant-controls/engine/states/fuel-enabled</property>
     <property value="0">systems/powerplant-controls/engine/states/start-allowed</property>
@@ -79,13 +80,21 @@ the Free Software Foundation; either version 2 of the License, or
             </test>
             <output>systems/powerplant-controls/engine/states/starter-engaged</output>
         </switch>
-        <switch name="powerplant-controls/start-allowed">
+        <switch name="powerplant-controls/starter-powered">
             <default value="0" />
             <test value="1" logic="AND">
                 systems/powerplant-controls/engine/states/starter-engaged == 1
+                systems/powerplant-controls/electrical/states/power-available == 1
+            </test>
+            <output>systems/powerplant-controls/engine/states/starter-powered</output>
+        </switch>
+
+        <switch name="powerplant-controls/start-allowed">
+            <default value="0" />
+            <test value="1" logic="AND">
+                systems/powerplant-controls/engine/states/starter-powered == 1
                 systems/powerplant-controls/engine/states/ignition-enabled == 1
                 systems/powerplant-controls/engine/states/fuel-enabled == 1
-                systems/powerplant-controls/electrical/states/power-available == 1
             </test>
             <output>systems/powerplant-controls/engine/states/start-allowed</output>
         </switch>
@@ -95,7 +104,7 @@ the Free Software Foundation; either version 2 of the License, or
         <switch name="powerplant-controls/starter-to-engine">
             <default value="0" />
             <test value="1">
-                systems/powerplant-controls/engine/states/start-allowed == 1
+                systems/powerplant-controls/engine/states/starter-powered == 1
             </test>
             <output>propulsion/starter_cmd</output>
         </switch>
