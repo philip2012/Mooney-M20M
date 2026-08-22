@@ -5,6 +5,7 @@ import math
 import statistics
 
 import jsbsim
+import os
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -12,13 +13,19 @@ MODEL = "FDM/Mooney-M20M"
 
 DT = 1.0 / 120.0
 
-START_ALTITUDE_FT = 5000.0
+START_ALTITUDE_FT = float(
+    os.environ.get(
+        "M20M_START_ALT_FT",
+        "5000",
+    )
+)
 
-TARGET_IAS_KTS = (
-    90.0,
-    100.0,
-    110.0,
-    120.0,
+TARGET_IAS_KTS = tuple(
+    float(v)
+    for v in os.environ.get(
+        "M20M_CLIMB_IAS",
+        "90,100,110,120",
+    ).split(",")
 )
 
 SETTLE_SEC = 25.0
@@ -102,6 +109,13 @@ RUDDER = "fcs/rudder-cmd-norm"
 RPM = "propulsion/engine[0]/propeller-rpm"
 MAP = "propulsion/engine[0]/map-inhg"
 POWER = "propulsion/engine[0]/power-hp"
+THRUST = "propulsion/engine[0]/thrust-lbs"
+ADVANCE_RATIO = "propulsion/engine[0]/advance-ratio"
+BLADE_ANGLE = "propulsion/engine[0]/blade-angle"
+
+AERO_DRAG = "aero/drag-lbs"
+CD = "aero/coefficient/CD"
+QBAR = "aero/qbar-psf"
 
 WEIGHT = "inertia/weight-lbs"
 
@@ -546,6 +560,12 @@ def run_case(target_ias):
                 "rpm": get(fdm, RPM),
                 "map": get(fdm, MAP),
                 "hp": get(fdm, POWER),
+                "thrust": get(fdm, THRUST),
+                "advance_ratio": get(fdm, ADVANCE_RATIO),
+                "blade_angle": get(fdm, BLADE_ANGLE),
+                "drag": get(fdm, AERO_DRAG),
+                "cd": get(fdm, CD),
+                "qbar": get(fdm, QBAR),
                 "alt": get(fdm, ALTITUDE),
                 "weight": get(fdm, WEIGHT),
                 "gear": get(fdm, GEAR_POS),
@@ -601,6 +621,12 @@ def run_case(target_ias):
         "rpm": avg("rpm"),
         "map": avg("map"),
         "hp": avg("hp"),
+        "thrust": avg("thrust"),
+        "advance_ratio": avg("advance_ratio"),
+        "blade_angle": avg("blade_angle"),
+        "drag": avg("drag"),
+        "cd": avg("cd"),
+        "qbar": avg("qbar"),
 
         "alt": avg("alt"),
         "weight": avg("weight"),
@@ -709,6 +735,54 @@ def main():
             f"{r['phi_abs']:7.2f} "
             f"{r['gear']:6.3f} "
             f"{r['flap']:6.3f}"
+        )
+
+    print()
+    print(
+        " tgt      J   blade  thrust    drag"
+        "   propHP  dragHP    eta  climbHP"
+        "      CD    qbar"
+    )
+
+    print(
+        "----  -----  ------  ------  ------"
+        "  -------  ------  -----  -------"
+        "  ------  ------"
+    )
+
+    for r in results:
+        tas_fps = r["tas"] * 1.687809857
+
+        prop_hp = (
+            r["thrust"] * tas_fps / 550.0
+        )
+
+        drag_hp = (
+            r["drag"] * tas_fps / 550.0
+        )
+
+        eta = (
+            prop_hp / r["hp"]
+            if r["hp"] > 1.0
+            else 0.0
+        )
+
+        climb_hp = (
+            r["weight"] * r["vs"] / 33000.0
+        )
+
+        print(
+            f"{r['target']:4.0f} "
+            f"{r['advance_ratio']:6.3f} "
+            f"{r['blade_angle']:7.2f} "
+            f"{r['thrust']:7.1f} "
+            f"{r['drag']:7.1f} "
+            f"{prop_hp:8.1f} "
+            f"{drag_hp:7.1f} "
+            f"{eta:6.3f} "
+            f"{climb_hp:8.1f} "
+            f"{r['cd']:7.4f} "
+            f"{r['qbar']:7.2f}"
         )
 
     print()
