@@ -24,23 +24,10 @@ the Free Software Foundation; either version 2 of the License, or
                     <propeller-pitch type="double">1.0</propeller-pitch>
                     <starter type="bool">false</starter>
                     <magnetos type="int">3</magnetos>
+                    <master-bat type="bool">true</master-bat>
+                    <master-alt type="bool">false</master-alt>
                 </engine>
             </engines>
         </controls>
-        <fdm>
-            <jsbsim>
-                <systems>
-                    <powerplant-controls>
-
-                        <electrical>
-                            <switches>
-                                <battery-master type="int">1</battery-master>
-                                <alternator type="int">0</alternator>
-                            </switches>
-                        </electrical>
-                    </powerplant-controls>
-                </systems>
-            </jsbsim>
-        </fdm>
     </overlay>
 </PropertyList>

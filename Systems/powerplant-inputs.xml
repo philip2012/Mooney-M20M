@@ -79,4 +79,25 @@ the Free Software Foundation; either version 2 of the License, or
         </output>
     </filter>
 
+
+    <filter>
+        <name>powerplant-input-battery-master</name>
+        <type>gain</type>
+        <gain>1.0</gain>
+        <input>
+            <property>/controls/engines/engine[0]/master-bat</property>
+        </input>
+        <output>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/battery-master</output>
+    </filter>
+
+    <filter>
+        <name>powerplant-input-alternator</name>
+        <type>gain</type>
+        <gain>1.0</gain>
+        <input>
+            <property>/controls/engines/engine[0]/master-alt</property>
+        </input>
+        <output>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/alternator</output>
+    </filter>
+
 </PropertyList>

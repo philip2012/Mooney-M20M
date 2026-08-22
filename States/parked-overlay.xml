@@ -24,6 +24,8 @@ the Free Software Foundation; either version 2 of the License, or
                     <propeller-pitch type="double">1.0</propeller-pitch>
                     <starter type="bool">false</starter>
                     <magnetos type="int">0</magnetos>
+                    <master-bat type="bool">false</master-bat>
+                    <master-alt type="bool">false</master-alt>
                 </engine>
             </engines>
             <lighting>
@@ -34,20 +36,5 @@ the Free Software Foundation; either version 2 of the License, or
                 <taxi-light type="bool">false</taxi-light>
             </lighting>
         </controls>
-        <fdm>
-            <jsbsim>
-                <systems>
-                    <powerplant-controls>
-
-                        <electrical>
-                            <switches>
-                                <battery-master type="int">0</battery-master>
-                                <alternator type="int">0</alternator>
-                            </switches>
-                        </electrical>
-                    </powerplant-controls>
-                </systems>
-            </jsbsim>
-        </fdm>
     </overlay>
 </PropertyList>

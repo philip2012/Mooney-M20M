@@ -344,10 +344,10 @@ the Free Software Foundation; either version 2 of the License, or
 
             <key n="121">
                 <name>y</name>
-                <desc>Toggle master switch (local)</desc>
+                <desc>Toggle battery master</desc>
                 <binding>
                     <command>property-cycle</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/battery-master</property>
+                    <property>/controls/engines/engine[0]/master-bat</property>
                     <value type="int">1</value>
                     <value type="int">0</value>
                 </binding>
@@ -355,10 +355,10 @@ the Free Software Foundation; either version 2 of the License, or
 
             <key n="89">
                 <name>Y</name>
-                <desc>Toggle alternator switch (local)</desc>
+                <desc>Toggle alternator master</desc>
                 <binding>
                     <command>property-cycle</command>
-                    <property>/fdm/jsbsim/systems/powerplant-controls/electrical/switches/alternator</property>
+                    <property>/controls/engines/engine[0]/master-alt</property>
                     <value type="int">1</value>
                     <value type="int">0</value>
                 </binding>
