@@ -9,6 +9,20 @@ import os
 
 
 REPO = Path(__file__).resolve().parents[2]
+
+ENGINE_DIR = Path(
+    os.environ.get(
+        "M20M_ENGINE_DIR",
+        str(REPO / "Engines"),
+    )
+)
+
+AIRCRAFT_ROOT = Path(
+    os.environ.get(
+        "M20M_AIRCRAFT_ROOT",
+        str(REPO),
+    )
+)
 MODEL = "FDM/Mooney-M20M"
 
 DT = 1.0 / 120.0
@@ -28,7 +42,13 @@ TARGET_IAS_KTS = tuple(
     ).split(",")
 )
 
-SETTLE_SEC = 25.0
+SETTLE_SEC = float(
+    os.environ.get(
+        "M20M_CLIMB_SETTLE_SEC",
+        "25.0",
+    )
+)
+
 SAMPLE_SEC = 10.0
 
 
@@ -154,8 +174,8 @@ def make_fdm(target_ias):
 
     if not fdm.load_model_with_paths(
         MODEL,
-        str(REPO),
-        str(REPO / "Engines"),
+        str(AIRCRAFT_ROOT),
+        str(ENGINE_DIR),
         str(REPO / "Systems"),
         False,
     ):
@@ -590,13 +610,81 @@ def run_case(target_ias):
             for row in samples
         )
 
+    # Compare the first and last 20 percent of the
+    # measurement window. Standard deviation alone
+    # cannot distinguish oscillation from a slow drift.
+    trend_count = max(
+        1,
+        len(samples) // 5,
+    )
+
+    ias_first = statistics.mean(
+        row["ias"]
+        for row in samples[:trend_count]
+    )
+
+    ias_last = statistics.mean(
+        row["ias"]
+        for row in samples[-trend_count:]
+    )
+
+    ias_drift = (
+        ias_last
+        - ias_first
+    )
+
+    tas_avg = avg("tas")
+    thrust_avg = avg("thrust")
+    drag_avg = avg("drag")
+    weight_avg = avg("weight")
+    vs_avg = avg("vs")
+
+    tas_fps_avg = (
+        tas_avg
+        * 1.687809857
+    )
+
+    prop_hp = (
+        thrust_avg
+        * tas_fps_avg
+        / 550.0
+    )
+
+    drag_hp = (
+        drag_avg
+        * tas_fps_avg
+        / 550.0
+    )
+
+    climb_hp = (
+        weight_avg
+        * vs_avg
+        / 33000.0
+    )
+
+    power_residual_hp = (
+        prop_hp
+        - drag_hp
+        - climb_hp
+    )
+
+    energy_vs = (
+        vs_avg
+        + (
+            power_residual_hp
+            * 33000.0
+            / weight_avg
+        )
+    )
+
     return {
         "target": target_ias,
 
         "ias": avg("ias"),
         "ias_std": std("ias"),
+        "ias_drift": ias_drift,
 
-        "tas": avg("tas"),
+        "tas": tas_avg,
 
         "vs": avg("vs"),
         "vs_std": std("vs"),
@@ -627,6 +715,12 @@ def run_case(target_ias):
         "drag": avg("drag"),
         "cd": avg("cd"),
         "qbar": avg("qbar"),
+
+        "prop_hp": prop_hp,
+        "drag_hp": drag_hp,
+        "climb_hp": climb_hp,
+        "power_residual_hp": power_residual_hp,
+        "energy_vs": energy_vs,
 
         "alt": avg("alt"),
         "weight": avg("weight"),
@@ -800,6 +894,14 @@ def main():
             and r["ias_std"] <= 1.5
 
             and abs(
+                r["ias_drift"]
+            ) <= 0.5
+
+            and abs(
+                r["power_residual_hp"]
+            ) <= 10.0
+
+            and abs(
                 r["vs"]
                 - r["vs_alt"]
             ) <= 75.0
@@ -817,6 +919,11 @@ def main():
                 "VALID"
                 if case_ok
                 else "NOT SETTLED"
+            )
+            + (
+                f"  drift={r['ias_drift']:+.2f} kt"
+                f"  residual={r['power_residual_hp']:+.1f} hp"
+                f"  energyVS={r['energy_vs']:.0f} fpm"
             )
         )
 

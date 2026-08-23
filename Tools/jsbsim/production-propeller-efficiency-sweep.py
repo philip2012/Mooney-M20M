@@ -19,14 +19,26 @@ ALTITUDE_FT = float(
     )
 )
 
-TEST_SPEEDS_KTS = (
-    90.0,
-    105.0,
-    120.0,
-    135.0,
-    150.0,
-    165.0,
-    180.0,
+TEST_SPEEDS_KTS = tuple(
+    float(v)
+    for v in os.environ.get(
+        "M20M_PROP_SPEEDS",
+        "90,105,120,135,150,165,180",
+    ).split(",")
+)
+
+ENGINE_DIR = Path(
+    os.environ.get(
+        "M20M_ENGINE_DIR",
+        str(REPO / "Engines"),
+    )
+)
+
+AIRCRAFT_ROOT = Path(
+    os.environ.get(
+        "M20M_AIRCRAFT_ROOT",
+        str(REPO),
+    )
 )
 
 KTS_TO_FPS = 1.687809857
@@ -63,6 +75,11 @@ POWER = "propulsion/engine[0]/power-hp"
 THRUST = "propulsion/engine[0]/thrust-lbs"
 J = "propulsion/engine[0]/advance-ratio"
 BLADE = "propulsion/engine[0]/blade-angle"
+TIP_MACH = "propulsion/engine[0]/helical-tip-Mach"
+CT = "propulsion/engine[0]/thrust-coefficient"
+PROP_POWER = (
+    "propulsion/engine[0]/propeller-power-ftlbps"
+)
 
 
 def get(fdm, prop):
@@ -94,8 +111,8 @@ fdm.set_dt(DT)
 
 if not fdm.load_model_with_paths(
     MODEL,
-    str(REPO),
-    str(REPO / "Engines"),
+    str(AIRCRAFT_ROOT),
+    str(ENGINE_DIR),
     str(REPO / "Systems"),
     False,
 ):
@@ -184,7 +201,11 @@ print(
 )
 
 print(
-    "Production engine + propeller XML."
+    f"Aircraft root: {AIRCRAFT_ROOT}"
+)
+
+print(
+    f"Engine directory: {ENGINE_DIR}"
 )
 
 print(
@@ -195,15 +216,17 @@ print(
 print()
 
 print(
-    " TAS      J    blade      RPM"
+    " TAS      J    blade   Mtip      RPM"
     "     MAP      HP   thrust"
-    "   propHP     eta"
+    "      Ct      Cp"
+    "   reqHP  propHP    eta  Pmatch"
 )
 
 print(
-    "----  -----  -------  -------"
+    "----  -----  -------  -----  -------"
     "  ------  ------  -------"
-    "  -------  ------"
+    "  ------  ------"
+    "  ------  ------  -----  ------"
 )
 
 
@@ -261,6 +284,13 @@ for speed_kts in TEST_SPEEDS_KTS:
     thrust = get(fdm, THRUST)
     advance = get(fdm, J)
     blade = get(fdm, BLADE)
+    tip_mach = get(fdm, TIP_MACH)
+    ct = get(fdm, CT)
+
+    prop_required_hp = (
+        get(fdm, PROP_POWER)
+        / 550.0
+    )
 
     prop_hp = (
         thrust
@@ -270,7 +300,19 @@ for speed_kts in TEST_SPEEDS_KTS:
     )
 
     eta = (
-        prop_hp / hp
+        prop_hp / prop_required_hp
+        if prop_required_hp > 1.0
+        else float("nan")
+    )
+
+    cp = (
+        advance * ct / eta
+        if abs(eta) > 1.0e-8
+        else float("nan")
+    )
+
+    power_match = (
+        prop_required_hp / hp
         if hp > 1.0
         else float("nan")
     )
@@ -282,8 +324,13 @@ for speed_kts in TEST_SPEEDS_KTS:
         thrust,
         advance,
         blade,
+        tip_mach,
+        ct,
+        cp,
+        prop_required_hp,
         prop_hp,
         eta,
+        power_match,
     )
 
     if not all(
@@ -298,10 +345,15 @@ for speed_kts in TEST_SPEEDS_KTS:
         f"{speed_kts:4.0f} "
         f"{advance:6.3f} "
         f"{blade:8.2f} "
+        f"{tip_mach:6.3f} "
         f"{rpm:8.1f} "
         f"{map_inhg:7.2f} "
         f"{hp:7.2f} "
         f"{thrust:8.1f} "
-        f"{prop_hp:8.1f} "
-        f"{eta:7.3f}"
+        f"{ct:7.4f} "
+        f"{cp:7.4f} "
+        f"{prop_required_hp:7.1f} "
+        f"{prop_hp:7.1f} "
+        f"{eta:6.3f} "
+        f"{power_match:7.3f}"
     )
