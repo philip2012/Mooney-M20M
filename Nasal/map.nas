@@ -226,7 +226,7 @@ var MAPCanvas = {
   },
 
   changeZoomMap: func(d) {
-    new_zoom = math.max(2, math.min(15, me.zoom + d));
+    var new_zoom = math.max(2, math.min(15, me.zoom + d));
     if (new_zoom != me.zoom) {
       me.zoom = new_zoom;
       #debug.dump(zoom);
@@ -286,25 +286,21 @@ var MAPCanvas = {
 
             if (io.stat(img_path) == nil) {
               var img_url = me.makeUrl(pos);
-              var message = "Requesting %s...";
               #printf(message, img_url);
               http.save(img_url, img_path)
               .done(func {
-                var message = "Received image %s";
                 #printf(message, img_path);
                 # if (pos.z == zoom) {
                 #   tile.setFile(img_path);
                 # }
               })
               .fail(func (r) {
-                var message = "Failed to get image %s %s: %s";
                 #printf(message, img_path, r.status, r.reason);
                 me.tiles_back[x-1][y-1].setFile("");
                 me.tiles_front[x-1][y-1].setFile("");
               });
             } else {
               if (pos.z == me.zoom) {
-                var message = "Loading %s";
                 #printf(message, img_path);
                 me.tiles_back[x][y].setFile(img_path);
                 me.tiles_front[x][y].setFile(img_path);
@@ -320,7 +316,7 @@ var MAPCanvas = {
   },
   updateRadar:func(){
     #Rotating aircraft to the front.
-    me.svg_symbol.setRotation(0*D2R);
+    me.svg_symbol.setRotation(0);
   },
 
   changeMfD_Displaying:func(){
@@ -338,7 +334,7 @@ var MAPCanvas = {
 
   update: func() {
     #Whatever need to be updated
-    var update_timer = maketimer(0, func(){
+    me.update_timer = maketimer(0, func(){
       #print("Hello World");
       if (me.MapToggle) {
         me.updateTiles();
@@ -346,7 +342,7 @@ var MAPCanvas = {
         me.updateRadar()
       }
     });
-    update_timer.start();
+    me.update_timer.start();
   },
 
   #Other function like zoom in/out changing tile index, etc
