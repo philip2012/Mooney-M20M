@@ -686,16 +686,25 @@
   <animation>
     <type>rotate</type>
     <object-name>TrainAvant</object-name>
-    <!-- <property>gear/gear[0]/caster-angle-deg</property> -->
+
+    <condition>
+      <greater-than>
+        <property>gear/gear[0]/position-norm</property>
+        <value>0.95</value>
+      </greater-than>
+    </condition>
+
     <property>sim/multiplay/generic/float[4]</property>
-    <factor> -13.0 </factor>
+    <factor>-13.0</factor>
+
     <axis>
-      <x1-m> -3.36004 </x1-m>
-      <y1-m>  0.00000 </y1-m>
-      <z1-m> -0.90579 </z1-m>
-      <x2-m> -3.14056 </x2-m>
-      <y2-m>  0.00000 </y2-m>
-      <z2-m> -0.37302 </z2-m>
+      <x1-m>-3.36004</x1-m>
+      <y1-m>0.00000</y1-m>
+      <z1-m>-0.90579</z1-m>
+
+      <x2-m>-3.14056</x2-m>
+      <y2-m>0.00000</y2-m>
+      <z2-m>-0.37302</z2-m>
     </axis>
   </animation>
 
