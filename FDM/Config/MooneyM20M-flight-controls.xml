@@ -36,6 +36,19 @@ the Free Software Foundation; either version 2 of the License, or
             <output>fcs/elevator-pos-rad</output>
         </aerosurface_scale>
 
+        <aerosurface_scale name="fcs/elevator-pos-norm">
+            <input>fcs/elevator-pos-rad</input>
+            <domain>
+                <min>-0.383972</min>
+                <max>0.383972</max>
+            </domain>
+            <range>
+                <min>-1</min>
+                <max>1</max>
+            </range>
+            <output>fcs/elevator-pos-norm</output>
+        </aerosurface_scale>
+
     </channel>
 
     <!-- Roll -->
@@ -64,6 +77,19 @@ the Free Software Foundation; either version 2 of the License, or
             <output>fcs/left-aileron-pos-rad</output>
         </aerosurface_scale>
 
+        <aerosurface_scale name="fcs/left-aileron-pos-norm">
+            <input>fcs/left-aileron-pos-rad</input>
+            <domain>
+                <min>-0.235619</min>
+                <max>0.139626</max>
+            </domain>
+            <range>
+                <min>-1</min>
+                <max>1</max>
+            </range>
+            <output>fcs/left-aileron-pos-norm</output>
+        </aerosurface_scale>
+
         <!-- Right aileron -->
         <aerosurface_scale name="fcs/right-aileron-pos-rad">
             <input>fcs/roll-cmd-sum</input>
@@ -76,6 +102,19 @@ the Free Software Foundation; either version 2 of the License, or
                 <max>0.139626</max>
             </range>
             <output>fcs/right-aileron-pos-rad</output>
+        </aerosurface_scale>
+
+        <aerosurface_scale name="fcs/right-aileron-pos-norm">
+            <input>fcs/right-aileron-pos-rad</input>
+            <domain>
+                <min>-0.235619</min>
+                <max>0.139626</max>
+            </domain>
+            <range>
+                <min>-1</min>
+                <max>1</max>
+            </range>
+            <output>fcs/right-aileron-pos-norm</output>
         </aerosurface_scale>
 
         <!-- Equivalent aileron deflection for current aero model -->
@@ -119,6 +158,19 @@ the Free Software Foundation; either version 2 of the License, or
             <output>fcs/rudder-pos-rad</output>
         </aerosurface_scale>
 
+        <aerosurface_scale name="fcs/rudder-pos-norm">
+            <input>fcs/rudder-pos-rad</input>
+            <domain>
+                <min>-0.410152</min>
+                <max>0.410152</max>
+            </domain>
+            <range>
+                <min>-1</min>
+                <max>1</max>
+            </range>
+            <output>fcs/rudder-pos-norm</output>
+        </aerosurface_scale>
+
     </channel>
 
     <!-- Flaps -->
@@ -135,6 +187,19 @@ the Free Software Foundation; either version 2 of the License, or
                 <max>0.5759586531581288</max> <!-- 33 deg -->
             </range>
             <output>fcs/flap-pos-rad</output>
+        </aerosurface_scale>
+
+        <aerosurface_scale name="fcs/flap-pos-norm">
+            <input>fcs/flap-pos-rad</input>
+            <domain>
+                <min>0</min>
+                <max>0.5759586531581288</max>
+            </domain>
+            <range>
+                <min>0</min>
+                <max>1</max>
+            </range>
+            <output>fcs/flap-pos-norm</output>
         </aerosurface_scale>
 
     </channel>
