@@ -45,6 +45,10 @@ var NDCanvas = {
     nav_type_prop: props.globals.getNode("autopilot/internal/nav-type"),
     nav_distance_prop: props.globals.getNode("autopilot/internal/nav-distance"),
 
+    main_bus_volts_prop: props.globals.getNode(
+        "systems/mooney-m20m/electrical/bus/main-volts"
+    ),
+
     update_timer: nil,
     initialized: 0,
 
@@ -402,6 +406,21 @@ var NDCanvas = {
         if (!me.initialized) {
             return;
         }
+
+        #
+        # Display power.
+        #
+        # Match the legacy ND's 24 V main-bus threshold.
+        #
+
+        var main_bus_volts = me.main_bus_volts_prop.getValue();
+
+        if (main_bus_volts == nil or main_bus_volts < 24) {
+            me.root.setVisible(0);
+            return;
+        }
+
+        me.root.setVisible(1);
 
         var heading = me.heading_prop.getValue();
 
