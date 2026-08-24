@@ -1,5 +1,5 @@
 # Nasal/state-init.nas
-
+#
 # Copyright (C) 2026 Philips Nguyen
 #
 # This program is free software; you can redistribute it and/or modify
@@ -11,28 +11,71 @@ var state_init = {
     active: 0
 };
 
+# /sim/aircraft-state contains the launcher-selected state on initial load,
+# but may become empty during an in-sim reset such as Shift-Esc.
+var initial_state_property = "/sim/aircraft-state";
+
+# Preserve the selected state across FlightGear resets.
+var preserved_state_property = "/systems/mooney-m20m/state/selected";
+var preserved_state_node =
+    props.globals.getNode(preserved_state_property, 1);
+
+preserved_state_node.setAttribute("preserve", 1);
+
+
 state_init.requires_running = func(state_name) {
     return state_name == "take-off"
         # or state_name == "cruise"
         or state_name == "approach";
 };
 
+
+state_init.resolve_aircraft_state = func {
+    var live_state = getprop(initial_state_property, "");
+
+    # Initial load: remember the launcher-selected aircraft state.
+    if (live_state != nil and live_state != "") {
+        preserved_state_node.setValue(live_state);
+        return live_state;
+    }
+
+    # FDM reinitialization: fall back to the preserved state.
+    var preserved_state = preserved_state_node.getValue();
+
+    if (preserved_state != nil and preserved_state != "") {
+        return preserved_state;
+    }
+
+    return "";
+};
+
+
+state_init.restore_running_prerequisites = func(state_name) {
+    if (!state_init.requires_running(state_name)) {
+        return;
+    }
+
+    setprop("/controls/engines/engine[0]/mixture", 1);
+    setprop("/controls/engines/engine[0]/propeller-pitch", 1);
+    setprop("/controls/engines/engine[0]/magnetos", 3);
+    setprop("/controls/engines/engine[0]/master-bat", 1);
+    setprop("/controls/engines/engine[0]/master-alt", 1);
+};
+
+
 state_init.finalize_running_state = func(state_name) {
-    # Always make sure the starter is released.
     setprop("/controls/engines/engine[0]/starter", 0);
 
-    # Keep this minimal for now.
     if (state_name == "take-off") {
-        # After engine runs, reduce throttle to idle and release brakes for rolling take-off
         setprop("/controls/engines/engine[0]/throttle", 0);
         setprop("/controls/gears/brake-parking", 0);
 
-        # Engine is up now, so electrical generation should be available.
-        setprop("/fdm/jsbsim/systems/powerplant-controls/electrical/switches/alternator", 1);
+        # Selector 1 is the take-off flap detent.
+        setprop(
+            "/fdm/jsbsim/systems/airframe-controls/flaps/selector",
+            1
+        );
 
-        # Ensure take-off flaps are set as part of state finalization.
-        # Selector 1 is the equivalent to 10 degree detent.
-        setprop("/fdm/jsbsim/systems/airframe-controls/flaps/selector", 1);
     } elsif (state_name == "approach") {
         setprop("/controls/engines/engine[0]/throttle", 0.425);
         setprop("/controls/engines/engine[0]/mixture", 1);
@@ -40,64 +83,76 @@ state_init.finalize_running_state = func(state_name) {
     }
 };
 
+
+state_init.finalize_failed_start = func(state_name) {
+    setprop("/controls/engines/engine[0]/starter", 0);
+
+    if (state_name == "take-off") {
+        setprop("/controls/engines/engine[0]/throttle", 0);
+        setprop("/controls/gears/brake-parking", 0);
+
+    } elsif (state_name == "approach") {
+        setprop("/controls/engines/engine[0]/throttle", 0.425);
+        setprop("/controls/engines/engine[0]/mixture", 1);
+        setprop("/controls/engines/engine[0]/propeller-pitch", 1);
+    }
+
+    state_init.active = 0;
+};
+
+
 state_init.poll_until_stable_running = func(state_name, remaining) {
-    if (getprop("/engines/engine[0]/running", 0) == 1 and getprop("/engines/engine[0]/rpm", 0) >= 700) {
+    if (
+        getprop("/engines/engine[0]/running", 0) == 1
+        and
+        getprop("/engines/engine[0]/rpm", 0) >= 700
+    ) {
         state_init.finalize_running_state(state_name);
         state_init.active = 0;
         return;
     }
 
     if (remaining <= 0) {
-        setprop("/controls/engines/engine[0]/starter", 0);
-
-        if (state_name == "take-off") {
-            setprop("/controls/engines/engine[0]/throttle", 0);
-            setprop("/controls/gears/brake-parking", 0);
-        } elsif (state_name == "approach") {
-            setprop("/controls/engines/engine[0]/throttle", 0.425);
-            setprop("/controls/engines/engine[0]/mixture", 1);
-            setprop("/controls/engines/engine[0]/propeller-pitch", 1);
-        }
-
-        state_init.active = 0;
+        state_init.finalize_failed_start(state_name);
         return;
     }
 
     settimer(func {
-        state_init.poll_until_stable_running(state_name, remaining - 1);
+        state_init.poll_until_stable_running(
+            state_name,
+            remaining - 1
+        );
     }, 0.1);
 };
+
 
 state_init.poll_until_running = func(state_name, remaining) {
     if (getprop("/engines/engine[0]/running", 0) == 1) {
         setprop("/controls/engines/engine[0]/starter", 0);
 
-        settimer(func(){
-            state_init.poll_until_stable_running(state_name, 20);
+        settimer(func {
+            state_init.poll_until_stable_running(
+                state_name,
+                20
+            );
         }, 0.1);
+
         return;
     }
 
     if (remaining <= 0) {
-        # Give up cleanly instead of leaving the starter held forever.
-        setprop("/controls/engines/engine[0]/starter", 0);
-
-        if (state_name == "take-off") {
-            setprop("/controls/engines/engine[0]/throttle", 0);
-            setprop("/controls/gears/brake-parking", 0);
-        } elsif (state_name == "approach") {
-            setprop("/controls/engines/engine[0]/throttle", 0.425);
-            setprop("/controls/engines/engine[0]/mixture", 1);
-            setprop("/controls/engines/engine[0]/propeller-pitch", 1);
-        }
-        state_init.active = 0;
+        state_init.finalize_failed_start(state_name);
         return;
     }
 
     settimer(func {
-        state_init.poll_until_running(state_name, remaining - 1);
+        state_init.poll_until_running(
+            state_name,
+            remaining - 1
+        );
     }, 0.1);
 };
+
 
 state_init.arm_running_state = func(state_name) {
     if (state_init.active) {
@@ -106,39 +161,64 @@ state_init.arm_running_state = func(state_name) {
 
     state_init.active = 1;
 
-    # If the engine is already running, just apply the final state cleanup.
-    if (getprop("/engines/engine[0]/running", 0) == 1) {
+    # State overlays are not necessarily replayed during FDM reinit.
+    state_init.restore_running_prerequisites(state_name);
+
+    # Avoid restarting an engine that is already stably running.
+    if (
+        getprop("/engines/engine[0]/running", 0) == 1
+        and
+        getprop("/engines/engine[0]/rpm", 0) >= 700
+    ) {
         state_init.finalize_running_state(state_name);
         state_init.active = 0;
         return;
     }
 
-    # if the aircraft state is for take off, start the engine by adding a bit of throttle and set parking brake so it doesn't drift
     if (state_name == "take-off") {
         setprop("/controls/engines/engine[0]/throttle", 0.2);
         setprop("/controls/gears/brake-parking", 1);
+
     } elsif (state_name == "approach") {
         setprop("/controls/engines/engine[0]/throttle", 0.3);
-        setprop("/controls/engines/engine[0]/mixture", 1);
-        setprop("/controls/engines/engine[0]/propeller-pitch", 1);
     }
 
-    # Runtime part only. Static setup belongs in the overlay.
-    setprop("/controls/engines/engine[0]/starter", 1);
+    # Allow the FlightGear property-rule bridge to propagate restored
+    # controls into the JSBSim-local powerplant system before cranking.
+    settimer(func {
+        if (!state_init.active) {
+            return;
+        }
 
-    # Poll for up to ~8 seconds.
-    state_init.poll_until_running(state_name, 80);
+        setprop("/controls/engines/engine[0]/starter", 1);
+        state_init.poll_until_running(state_name, 80);
+
+    }, 0.1);
 };
+
 
 state_init.on_fdm_initialized = func {
-    var aircraft_state = getprop("/sim/aircraft-state", "");
+    var aircraft_state = state_init.resolve_aircraft_state();
 
-    if (state_init.requires_running(aircraft_state)) {
-        state_init.arm_running_state(aircraft_state);
+    if (!state_init.requires_running(aircraft_state)) {
+        return;
     }
+
+    # Let JSBSim and FlightGear-facing engine outputs settle after
+    # FDM creation/reinitialization.
+    settimer(func {
+        state_init.arm_running_state(aircraft_state);
+    }, 0.2);
 };
 
-# Keep this listener installed so it also works on later FDM re-inits/resets.
-setlistener("/sim/signals/fdm-initialized", func {
+
+# Apply runtime state initialization after the initial FDM load and after
+# subsequent FDM resets such as Shift-Esc.
+setlistener("/sim/signals/fdm-initialized", func(node) {
+    if (!node.getBoolValue()) {
+        return;
+    }
+
     state_init.on_fdm_initialized();
-}, 0, 0);
+
+}, 0, 1);

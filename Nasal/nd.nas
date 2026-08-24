@@ -32,6 +32,8 @@ var NDCanvas = {
     nav_source_text: nil,
     nav_distance_text: nil,
 
+    tcas_text: nil,
+
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
     heading_bug_error_prop: props.globals.getNode("autopilot/internal/heading-bug-error-deg"),
@@ -44,6 +46,10 @@ var NDCanvas = {
 
     nav_type_prop: props.globals.getNode("autopilot/internal/nav-type"),
     nav_distance_prop: props.globals.getNode("autopilot/internal/nav-distance"),
+
+    tcas_prop: props.globals.getNode(
+        "instrumentation/primus2000/dc840/tcas"
+    ),
 
     main_bus_volts_prop: props.globals.getNode(
         "systems/mooney-m20m/electrical/bus/main-volts"
@@ -350,6 +356,23 @@ var NDCanvas = {
 
         me.nav_distance_text.enableUpdate();
 
+        #
+        # TCAS mode annunciation.
+        #
+        # Mirrors the legacy MFD.tcas-off / MFD.tcas-auto states.
+        #
+
+        me.tcas_text = me.root
+            .createChild("text", "tcas-mode")
+            .setTranslation(610, 425)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(22, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("TCAS OFF");
+
+        me.tcas_text.enableUpdate();
+
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
         });
@@ -396,6 +419,8 @@ var NDCanvas = {
 
         me.nav_source_text = nil;
         me.nav_distance_text = nil;
+
+        me.tcas_text = nil;
 
         me.initialized = 0;
 
@@ -563,6 +588,18 @@ var NDCanvas = {
                     int(math.floor(nav_distance + 0.5))
                 )
             );
+        }
+
+        #
+        # TCAS mode annunciation.
+        #
+
+        var tcas_enabled = me.tcas_prop.getValue();
+
+        if (tcas_enabled) {
+            me.tcas_text.updateText("TCAS AUTO");
+        } else {
+            me.tcas_text.updateText("TCAS OFF");
         }
 
         #
