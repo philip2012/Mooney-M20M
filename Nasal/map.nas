@@ -334,7 +334,7 @@ var MAPCanvas = {
 
   update: func() {
     #Whatever need to be updated
-    me.update_timer = maketimer(0, func(){
+    me.update_timer = maketimer(1.0 / 30.0, func(){
       #print("Hello World");
       if (me.MapToggle) {
         me.updateTiles();
@@ -349,5 +349,19 @@ var MAPCanvas = {
 };
 
 var MapCanvas = MAPCanvas.new({"node": "canvasCadre", "texture": "canvasTex.png"});
+
+var map_window = nil;
+
+var showMap = func {
+  map_window = canvas.Window.new(
+    [768, 576],
+    "dialog"
+  );
+
+  map_window.set("title", "Mooney M20M Map");
+  map_window.set("resize", 1);
+  map_window.setCanvas(MapCanvas.canvas);
+  map_window.raise();
+}
 
 MapCanvas.update();
