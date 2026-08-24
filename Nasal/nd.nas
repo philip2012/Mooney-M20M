@@ -16,8 +16,16 @@ var NDCanvas = {
     heading_labels: [],
     heading_bug: nil,
 
+    sat_text: nil,
+    tas_text: nil,
+    gs_text: nil,
+
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
+
+    sat_prop: props.globals.getNode("environment/temperature-degc"),
+    tas_prop: props.globals.getNode("instrumentation/airspeed-indicator/true-speed-kt"),
+    gs_prop: props.globals.getNode("velocities/groundspeed-kt"),
 
     update_timer: nil,
     initialized: 0,
@@ -26,6 +34,10 @@ var NDCanvas = {
         if (me.initialized) {
             return;
         }
+
+        # A previous popup may have destroyed the old Canvas.
+        # Start every fresh Canvas with fresh retained-element handles.
+        me.heading_labels = [];
 
         me.canvas = canvas.new({
             "name": "M20M-ND",
@@ -133,6 +145,43 @@ var NDCanvas = {
             136
         );
 
+        #
+        # Static data readouts.
+        #
+
+        me.sat_text = me.root
+            .createChild("text", "sat")
+            .setTranslation(145, 520)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(24, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("SAT --- C");
+
+        me.sat_text.enableUpdate();
+
+        me.tas_text = me.root
+            .createChild("text", "tas")
+            .setTranslation(610, 490)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(24, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("TAS ---");
+
+        me.tas_text.enableUpdate();
+
+        me.gs_text = me.root
+            .createChild("text", "gs")
+            .setTranslation(610, 525)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(24, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("GS ---");
+
+        me.gs_text.enableUpdate();
+
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
         });
@@ -142,6 +191,35 @@ var NDCanvas = {
         me.initialized = 1;
 
         print("M20M ND: Canvas prototype initialized");
+    },
+
+    shutdown: func {
+        #
+        # The development popup is currently the Canvas's only placement.
+        # Closing that window destroys the GUI-side Canvas resources, so
+        # invalidate our retained handles and rebuild on the next showND().
+        #
+
+        if (me.update_timer != nil) {
+            me.update_timer.stop();
+            me.update_timer = nil;
+        }
+
+        me.canvas = nil;
+        me.root = nil;
+
+        me.heading_text = nil;
+        me.heading_scale = nil;
+        me.heading_labels = [];
+        me.heading_bug = nil;
+
+        me.sat_text = nil;
+        me.tas_text = nil;
+        me.gs_text = nil;
+
+        me.initialized = 0;
+
+        print("M20M ND: Canvas prototype shut down");
     },
 
     update: func {
@@ -213,6 +291,40 @@ var NDCanvas = {
         }
 
         #
+        # Static data readouts.
+        #
+
+        var sat = me.sat_prop.getValue();
+
+        if (sat == nil) {
+            me.sat_text.updateText("SAT --- C");
+        } else {
+            me.sat_text.updateText(
+                sprintf("SAT %d C", int(math.floor(sat + 0.5)))
+            );
+        }
+
+        var tas = me.tas_prop.getValue();
+
+        if (tas == nil) {
+            me.tas_text.updateText("TAS ---");
+        } else {
+            me.tas_text.updateText(
+                sprintf("TAS %03d", int(math.floor(tas + 0.5)))
+            );
+        }
+
+        var gs = me.gs_prop.getValue();
+
+        if (gs == nil) {
+            me.gs_text.updateText("GS ---");
+        } else {
+            me.gs_text.updateText(
+                sprintf("GS %03d", int(math.floor(gs + 0.5)))
+            );
+        }
+
+        #
         # Selected-heading bug.
         #
 
@@ -252,6 +364,14 @@ var NDCanvas = {
 var nd_window = nil;
 
 var showND = func {
+    #
+    # Only one development popup at a time.
+    #
+    if (nd_window != nil) {
+        nd_window.raise();
+        return;
+    }
+
     NDCanvas.init();
 
     nd_window = canvas.Window.new(
@@ -262,5 +382,21 @@ var showND = func {
     nd_window.set("title", "Mooney M20M ND Prototype");
     nd_window.set("resize", 1);
     nd_window.setCanvas(NDCanvas.canvas);
+
+    #
+    # Window.del() is called when the Canvas dialog is closed.
+    # Clean up before invoking the normal Canvas Window destructor.
+    #
+    nd_window.del = func {
+        NDCanvas.shutdown();
+        nd_window = nil;
+
+        call(
+            canvas.Window.del,
+            [],
+            me
+        );
+    };
+
     nd_window.raise();
 };
