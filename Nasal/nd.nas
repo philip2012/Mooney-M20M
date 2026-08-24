@@ -15,6 +15,8 @@ var NDCanvas = {
     heading_scale: nil,
     heading_labels: [],
     heading_bug: nil,
+    heading_left_arrow: nil,
+    heading_right_arrow: nil,
 
     sat_text: nil,
     tas_text: nil,
@@ -29,6 +31,7 @@ var NDCanvas = {
 
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
+    heading_bug_error_prop: props.globals.getNode("autopilot/internal/heading-bug-error-deg"),
 
     sat_prop: props.globals.getNode("environment/temperature-degc"),
     tas_prop: props.globals.getNode("instrumentation/airspeed-indicator/true-speed-kt"),
@@ -153,6 +156,32 @@ var NDCanvas = {
             me.width / 2,
             136
         );
+
+        #
+        # Off-scale selected-heading arrows.
+        #
+
+        me.heading_left_arrow = me.root
+            .createChild("path", "heading-left-arrow")
+            .moveTo(0, 0)
+            .lineTo(14, -9)
+            .lineTo(14, 9)
+            .close()
+            .setColorFill(1, 0, 1)
+            .setStrokeLineWidth(0)
+            .setTranslation(145, 121)
+            .setVisible(0);
+
+        me.heading_right_arrow = me.root
+            .createChild("path", "heading-right-arrow")
+            .moveTo(0, 0)
+            .lineTo(-14, -9)
+            .lineTo(-14, 9)
+            .close()
+            .setColorFill(1, 0, 1)
+            .setStrokeLineWidth(0)
+            .setTranslation(623, 121)
+            .setVisible(0);
 
         #
         # Static data readouts.
@@ -313,6 +342,8 @@ var NDCanvas = {
         me.heading_scale = nil;
         me.heading_labels = [];
         me.heading_bug = nil;
+        me.heading_left_arrow = nil;
+        me.heading_right_arrow = nil;
 
         me.sat_text = nil;
         me.tas_text = nil;
@@ -454,36 +485,32 @@ var NDCanvas = {
         #
         # Selected-heading bug.
         #
+        # Use the same normalized error property as the legacy ND.
+        #
 
-        var selected_heading = me.selected_heading_prop.getValue();
+        var bug_error = me.heading_bug_error_prop.getValue();
 
-        if (selected_heading == nil) {
+        if (bug_error == nil) {
             me.heading_bug.setVisible(0);
-            return;
-        }
-
-        var bug_error = selected_heading - heading;
-
-        # Normalize angular error into -180 ... +180.
-        while (bug_error > 180) {
-            bug_error -= 360;
-        }
-
-        while (bug_error < -180) {
-            bug_error += 360;
-        }
-
-        # Prototype scale:
-        # 9 pixels per degree, visible across +/-20 degrees.
-        if (bug_error >= -20 and bug_error <= 20) {
+            me.heading_left_arrow.setVisible(0);
+            me.heading_right_arrow.setVisible(0);
+        } elsif (bug_error < -20) {
+            me.heading_bug.setVisible(0);
+            me.heading_left_arrow.setVisible(1);
+            me.heading_right_arrow.setVisible(0);
+        } elsif (bug_error > 20) {
+            me.heading_bug.setVisible(0);
+            me.heading_left_arrow.setVisible(0);
+            me.heading_right_arrow.setVisible(1);
+        } else {
+            me.heading_left_arrow.setVisible(0);
+            me.heading_right_arrow.setVisible(0);
             me.heading_bug.setVisible(1);
 
             me.heading_bug.setTranslation(
                 (me.width / 2) + (bug_error * 9),
                 136
             );
-        } else {
-            me.heading_bug.setVisible(0);
         }
     }
 };
