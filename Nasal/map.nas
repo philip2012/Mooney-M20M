@@ -142,6 +142,12 @@ var MAPCanvas = {
     m.myHeadingProp = props.globals.getNode("orientation/heading-deg");
     m.myCoord = geo.aircraft_position();
 
+    # Electrical power source.
+    # Match the legacy MAP/ND 24 V main-bus threshold.
+    m.mainBusVoltsProp = props.globals.getNode(
+      "systems/mooney-m20m/electrical/bus/main-volts"
+    );
+
     #Center of the canvas
     m.root.setCenter(384,256);
 
@@ -336,6 +342,22 @@ var MAPCanvas = {
     #Whatever need to be updated
     me.update_timer = maketimer(1.0 / 30.0, func(){
       #print("Hello World");
+
+      #
+      # Display power.
+      #
+      # When the main bus is below 24 V, hide the Canvas and skip the
+      # relatively expensive position/tile update work entirely.
+      #
+      var main_bus_volts = me.mainBusVoltsProp.getValue();
+
+      if (main_bus_volts == nil or main_bus_volts < 24) {
+        me.root.setVisible(0);
+        return;
+      }
+
+      me.root.setVisible(1);
+
       if (me.MapToggle) {
         me.updateTiles();
       } else {
