@@ -175,6 +175,11 @@ the Free Software Foundation; either version 2 of the License, or
         <m20>
             <file>Nasal/map.nas</file>
         </m20>
+
+        <!-- Experimental Canvas ND. Kept separate from the legacy XML/model ND. -->
+        <m20nd>
+            <file>Nasal/nd.nas</file>
+        </m20nd>
     </nasal>
 
     <!-- Gear related stuff -->
