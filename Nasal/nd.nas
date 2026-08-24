@@ -29,6 +29,9 @@ var NDCanvas = {
     range_inner_arc: nil,
     aircraft_symbol: nil,
 
+    nav_source_text: nil,
+    nav_distance_text: nil,
+
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
     heading_bug_error_prop: props.globals.getNode("autopilot/internal/heading-bug-error-deg"),
@@ -38,6 +41,9 @@ var NDCanvas = {
     gs_prop: props.globals.getNode("velocities/groundspeed-kt"),
 
     range_prop: props.globals.getNode("instrumentation/efis/inputs/range-nm"),
+
+    nav_type_prop: props.globals.getNode("autopilot/internal/nav-type"),
+    nav_distance_prop: props.globals.getNode("autopilot/internal/nav-distance"),
 
     update_timer: nil,
     initialized: 0,
@@ -312,6 +318,34 @@ var NDCanvas = {
 
         me.range_right_text.enableUpdate();
 
+        #
+        # NAV source / distance.
+        #
+        # Legacy ND supports VOR1 and VOR2 source indications.
+        #
+
+        me.nav_source_text = me.root
+            .createChild("text", "nav-source")
+            .setTranslation(145, 425)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(22, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("");
+
+        me.nav_source_text.enableUpdate();
+
+        me.nav_distance_text = me.root
+            .createChild("text", "nav-distance")
+            .setTranslation(145, 458)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(22, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("---");
+
+        me.nav_distance_text.enableUpdate();
+
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
         });
@@ -355,6 +389,9 @@ var NDCanvas = {
         me.range_outer_arc = nil;
         me.range_inner_arc = nil;
         me.aircraft_symbol = nil;
+
+        me.nav_source_text = nil;
+        me.nav_distance_text = nil;
 
         me.initialized = 0;
 
@@ -480,6 +517,33 @@ var NDCanvas = {
 
             me.range_left_text.updateText(range_text);
             me.range_right_text.updateText(range_text);
+        }
+
+        #
+        # NAV source / distance.
+        #
+
+        var nav_type = me.nav_type_prop.getValue();
+
+        if (nav_type == "VOR1") {
+            me.nav_source_text.updateText("VOR1");
+        } elsif (nav_type == "VOR2") {
+            me.nav_source_text.updateText("VOR2");
+        } else {
+            me.nav_source_text.updateText("");
+        }
+
+        var nav_distance = me.nav_distance_prop.getValue();
+
+        if (nav_distance == nil) {
+            me.nav_distance_text.updateText("---");
+        } else {
+            me.nav_distance_text.updateText(
+                sprintf(
+                    "%03d",
+                    int(math.floor(nav_distance + 0.5))
+                )
+            );
         }
 
         #
