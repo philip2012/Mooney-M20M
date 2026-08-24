@@ -38,6 +38,10 @@ var NDCanvas = {
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
     heading_bug_error_prop: props.globals.getNode("autopilot/internal/heading-bug-error-deg"),
 
+    mfd_map_prop: props.globals.getNode(
+        "instrumentation/primus2000/dc840/mfd-map"
+    ),
+
     sat_prop: props.globals.getNode("environment/temperature-degc"),
     tas_prop: props.globals.getNode("instrumentation/airspeed-indicator/true-speed-kt"),
     gs_prop: props.globals.getNode("velocities/groundspeed-kt"),
@@ -609,8 +613,9 @@ var NDCanvas = {
         #
 
         var bug_error = me.heading_bug_error_prop.getValue();
+        var map_mode = me.mfd_map_prop.getValue();
 
-        if (bug_error == nil) {
+        if (!map_mode or bug_error == nil) {
             me.heading_bug.setVisible(0);
             me.heading_left_arrow.setVisible(0);
             me.heading_right_arrow.setVisible(0);
