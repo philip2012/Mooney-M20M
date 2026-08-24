@@ -23,6 +23,10 @@ var NDCanvas = {
     range_left_text: nil,
     range_right_text: nil,
 
+    range_outer_arc: nil,
+    range_inner_arc: nil,
+    aircraft_symbol: nil,
+
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
 
@@ -188,6 +192,69 @@ var NDCanvas = {
         me.gs_text.enableUpdate();
 
         #
+        # ND range geometry.
+        #
+        # Geometry is retained and created once. Range selection changes
+        # the represented distance, not the physical Canvas geometry.
+        #
+
+        var arc_center_x = me.width / 2;
+        var arc_center_y = 475;
+        var outer_radius = 235;
+        var inner_radius = outer_radius / 2;
+
+        me.range_outer_arc = me.root
+            .createChild("path", "range-outer-arc");
+
+        me.range_inner_arc = me.root
+            .createChild("path", "range-inner-arc");
+
+        #
+        # Forward-looking 120-degree arcs: -60 ... +60 degrees.
+        # Canvas Y increases downward, so cosine is subtracted from Y.
+        #
+        for (var angle = -60; angle <= 60; angle += 2) {
+            var rad = angle * math.pi / 180.0;
+
+            var outer_x = arc_center_x + math.sin(rad) * outer_radius;
+            var outer_y = arc_center_y - math.cos(rad) * outer_radius;
+
+            var inner_x = arc_center_x + math.sin(rad) * inner_radius;
+            var inner_y = arc_center_y - math.cos(rad) * inner_radius;
+
+            if (angle == -60) {
+                me.range_outer_arc.moveTo(outer_x, outer_y);
+                me.range_inner_arc.moveTo(inner_x, inner_y);
+            } else {
+                me.range_outer_arc.lineTo(outer_x, outer_y);
+                me.range_inner_arc.lineTo(inner_x, inner_y);
+            }
+        }
+
+        me.range_outer_arc
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(2);
+
+        me.range_inner_arc
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(1);
+
+        #
+        # Fixed own-aircraft symbol.
+        #
+
+        me.aircraft_symbol = me.root
+            .createChild("path", "aircraft-symbol")
+            .moveTo(384, 423)
+            .lineTo(384, 455)
+            .moveTo(370, 440)
+            .lineTo(398, 440)
+            .moveTo(376, 455)
+            .lineTo(392, 455)
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(3);
+
+        #
         # ND range indications.
         #
         # The legacy ND contains independent left/right digit groups,
@@ -253,6 +320,10 @@ var NDCanvas = {
 
         me.range_left_text = nil;
         me.range_right_text = nil;
+
+        me.range_outer_arc = nil;
+        me.range_inner_arc = nil;
+        me.aircraft_symbol = nil;
 
         me.initialized = 0;
 
