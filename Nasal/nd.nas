@@ -20,12 +20,17 @@ var NDCanvas = {
     tas_text: nil,
     gs_text: nil,
 
+    range_left_text: nil,
+    range_right_text: nil,
+
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
 
     sat_prop: props.globals.getNode("environment/temperature-degc"),
     tas_prop: props.globals.getNode("instrumentation/airspeed-indicator/true-speed-kt"),
     gs_prop: props.globals.getNode("velocities/groundspeed-kt"),
+
+    range_prop: props.globals.getNode("instrumentation/efis/inputs/range-nm"),
 
     update_timer: nil,
     initialized: 0,
@@ -182,6 +187,35 @@ var NDCanvas = {
 
         me.gs_text.enableUpdate();
 
+        #
+        # ND range indications.
+        #
+        # The legacy ND contains independent left/right digit groups,
+        # both driven by instrumentation/efis/inputs/range-nm.
+        #
+
+        me.range_left_text = me.root
+            .createChild("text", "range-left")
+            .setTranslation(235, 265)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(22, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("---");
+
+        me.range_left_text.enableUpdate();
+
+        me.range_right_text = me.root
+            .createChild("text", "range-right")
+            .setTranslation(533, 265)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(22, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("---");
+
+        me.range_right_text.enableUpdate();
+
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
         });
@@ -216,6 +250,9 @@ var NDCanvas = {
         me.sat_text = nil;
         me.tas_text = nil;
         me.gs_text = nil;
+
+        me.range_left_text = nil;
+        me.range_right_text = nil;
 
         me.initialized = 0;
 
@@ -322,6 +359,25 @@ var NDCanvas = {
             me.gs_text.updateText(
                 sprintf("GS %03d", int(math.floor(gs + 0.5)))
             );
+        }
+
+        #
+        # ND range indications.
+        #
+
+        var range_nm = me.range_prop.getValue();
+
+        if (range_nm == nil) {
+            me.range_left_text.updateText("---");
+            me.range_right_text.updateText("---");
+        } else {
+            var range_text = sprintf(
+                "%d",
+                int(math.floor(range_nm + 0.5))
+            );
+
+            me.range_left_text.updateText(range_text);
+            me.range_right_text.updateText(range_text);
         }
 
         #
