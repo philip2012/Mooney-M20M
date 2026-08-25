@@ -40,6 +40,8 @@ var NDCanvas = {
 
     tcas_text: nil,
 
+    menu_text: nil,
+
     vor_overlay_text: nil,
     apt_overlay_text: nil,
 
@@ -66,6 +68,10 @@ var NDCanvas = {
 
     tcas_prop: props.globals.getNode(
         "instrumentation/primus2000/dc840/tcas"
+    ),
+
+    menu_num_prop: props.globals.getNode(
+        "instrumentation/primus2000/mfd/menu-num"
     ),
 
     main_bus_volts_prop: props.globals.getNode(
@@ -423,6 +429,25 @@ var NDCanvas = {
         me.tcas_text.enableUpdate();
 
         #
+        # Legacy MFD menu state.
+        #
+        # The original instrument shifts a menu texture according to
+        # instrumentation/primus2000/mfd/menu-num.
+        # Until that artwork is ported, expose the state explicitly.
+        #
+
+        me.menu_text = me.root
+            .createChild("text", "mfd-menu-state")
+            .setTranslation(384, 545)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(18, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("MENU ---");
+
+        me.menu_text.enableUpdate();
+
+        #
         # Legacy VOR / airport overlay state.
         #
         # The original ND uses textured MFD.vor and MFD.apt objects.
@@ -524,6 +549,8 @@ var NDCanvas = {
         me.nav_distance_text = nil;
 
         me.tcas_text = nil;
+
+        me.menu_text = nil;
 
         me.vor_overlay_text = nil;
         me.apt_overlay_text = nil;
@@ -751,6 +778,20 @@ var NDCanvas = {
             me.tcas_text.updateText("TCAS AUTO");
         } else {
             me.tcas_text.updateText("TCAS OFF");
+        }
+
+        #
+        # Legacy MFD menu state.
+        #
+
+        var menu_num = me.menu_num_prop.getValue();
+
+        if (menu_num == nil) {
+            me.menu_text.updateText("MENU ---");
+        } else {
+            me.menu_text.updateText(
+                sprintf("MENU %d", int(menu_num))
+            );
         }
 
         #
