@@ -22,6 +22,8 @@ var NDCanvas = {
     heading_mode_group: nil,
     wx_overlay_group: nil,
 
+    dimmer_overlay: nil,
+
     sat_text: nil,
     tas_text: nil,
     gs_text: nil,
@@ -68,6 +70,10 @@ var NDCanvas = {
 
     main_bus_volts_prop: props.globals.getNode(
         "systems/mooney-m20m/electrical/bus/main-volts"
+    ),
+
+    instrument_light_prop: props.globals.getNode(
+        "controls/lighting/instruments-norm"
     ),
 
     update_timer: nil,
@@ -447,6 +453,23 @@ var NDCanvas = {
             .setColor(1, 1, 1, 1)
             .setText("APT");
 
+        #
+        # Instrument-light dimming overlay.
+        #
+        # This approximates the legacy material-emission control in Canvas.
+        # It is retained and only its alpha changes during update().
+        #
+
+        me.dimmer_overlay = me.root
+            .createChild("path", "instrument-dimmer")
+            .moveTo(0, 0)
+            .lineTo(me.width, 0)
+            .lineTo(me.width, me.height)
+            .lineTo(0, me.height)
+            .close()
+            .setColorFill(0, 0, 0, 0)
+            .setStrokeLineWidth(0);
+
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
         });
@@ -483,6 +506,8 @@ var NDCanvas = {
 
         me.heading_mode_group = nil;
         me.wx_overlay_group = nil;
+
+        me.dimmer_overlay = nil;
 
         me.sat_text = nil;
         me.tas_text = nil;
@@ -527,6 +552,32 @@ var NDCanvas = {
         }
 
         me.root.setVisible(1);
+
+        #
+        # Instrument brightness.
+        #
+        # The legacy ND uses controls/lighting/instruments-norm as its
+        # emission factor. Use a black alpha overlay as the Canvas-side
+        # equivalent.
+        #
+
+        var instrument_light = me.instrument_light_prop.getValue();
+
+        if (instrument_light == nil) {
+            instrument_light = 1.0;
+        }
+
+        instrument_light = math.max(
+            0.0,
+            math.min(1.0, instrument_light)
+        );
+
+        me.dimmer_overlay.setColorFill(
+            0,
+            0,
+            0,
+            1.0 - instrument_light
+        );
 
         var heading = me.heading_prop.getValue();
 

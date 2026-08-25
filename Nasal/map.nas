@@ -148,6 +148,12 @@ var MAPCanvas = {
       "systems/mooney-m20m/electrical/bus/main-volts"
     );
 
+    # Instrument illumination.
+    # Shared with the Canvas ND and legacy panel emission.
+    m.instrumentLightProp = props.globals.getNode(
+      "controls/lighting/instruments-norm"
+    );
+
     #Center of the canvas
     m.root.setCenter(384,256);
 
@@ -227,6 +233,24 @@ var MAPCanvas = {
     #.arcSmallCCW(100, 100, 0, 200, 0);
 
     # draw_arc(m.arc_range1, 384,256 , 100 , 0, 180, "rgba(100, 100, 100, 1)", 3);
+
+    #
+    # Instrument-light dimming overlay.
+    #
+    # Created after the map tiles and aircraft symbol so it darkens the
+    # complete Canvas consistently in both cockpit and popup placements.
+    #
+    m.dimmerOverlay = m.root
+      .createChild("path", "instrument-dimmer")
+      .moveTo(0, 0)
+      .lineTo(width, 0)
+      .lineTo(width, height)
+      .lineTo(0, height)
+      .close()
+      .setColorFill(0, 0, 0, 0)
+      .setStrokeLineWidth(0);
+
+    m.dimmerOverlay.set("z-index", 100);
 
     return m;
   },
@@ -357,6 +381,30 @@ var MAPCanvas = {
       }
 
       me.root.setVisible(1);
+
+      #
+      # Instrument brightness.
+      #
+      # Match the Canvas ND implementation using the legacy
+      # controls/lighting/instruments-norm property.
+      #
+      var instrument_light = me.instrumentLightProp.getValue();
+
+      if (instrument_light == nil) {
+        instrument_light = 1.0;
+      }
+
+      instrument_light = math.max(
+        0.0,
+        math.min(1.0, instrument_light)
+      );
+
+      me.dimmerOverlay.setColorFill(
+        0,
+        0,
+        0,
+        1.0 - instrument_light
+      );
 
       if (me.MapToggle) {
         me.updateTiles();
