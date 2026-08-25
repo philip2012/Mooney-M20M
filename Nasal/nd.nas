@@ -34,12 +34,19 @@ var NDCanvas = {
 
     tcas_text: nil,
 
+    vor_overlay_text: nil,
+    apt_overlay_text: nil,
+
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
     heading_bug_error_prop: props.globals.getNode("autopilot/internal/heading-bug-error-deg"),
 
     mfd_map_prop: props.globals.getNode(
         "instrumentation/primus2000/dc840/mfd-map"
+    ),
+
+    mfd_wx_prop: props.globals.getNode(
+        "instrumentation/primus2000/dc840/mfd-wx"
     ),
 
     sat_prop: props.globals.getNode("environment/temperature-degc"),
@@ -377,6 +384,34 @@ var NDCanvas = {
 
         me.tcas_text.enableUpdate();
 
+        #
+        # Legacy VOR / airport overlay state.
+        #
+        # The original ND uses textured MFD.vor and MFD.apt objects.
+        # These text labels are temporary Canvas scaffolding; the original
+        # artwork/symbology can replace them during visual-parity cleanup.
+        #
+
+        me.vor_overlay_text = me.root
+            .createChild("text", "vor-overlay")
+            .setTranslation(275, 350)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(20, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("VOR")
+            .setVisible(0);
+
+        me.apt_overlay_text = me.root
+            .createChild("text", "apt-overlay")
+            .setTranslation(493, 350)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(20, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("APT")
+            .setVisible(0);
+
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
         });
@@ -425,6 +460,9 @@ var NDCanvas = {
         me.nav_distance_text = nil;
 
         me.tcas_text = nil;
+
+        me.vor_overlay_text = nil;
+        me.apt_overlay_text = nil;
 
         me.initialized = 0;
 
@@ -604,6 +642,22 @@ var NDCanvas = {
             me.tcas_text.updateText("TCAS AUTO");
         } else {
             me.tcas_text.updateText("TCAS OFF");
+        }
+
+        #
+        # Legacy VOR / airport overlay state.
+        #
+        # Both original objects use instrumentation/primus2000/dc840/mfd-wx.
+        #
+
+        var wx_overlay = me.mfd_wx_prop.getValue();
+
+        if (wx_overlay) {
+            me.vor_overlay_text.setVisible(1);
+            me.apt_overlay_text.setVisible(1);
+        } else {
+            me.vor_overlay_text.setVisible(0);
+            me.apt_overlay_text.setVisible(0);
         }
 
         #
