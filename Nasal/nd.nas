@@ -12,6 +12,7 @@ var NDCanvas = {
     canvas: nil,
     root: nil,
     heading_text: nil,
+    selected_heading_text: nil,
     heading_scale: nil,
     heading_labels: [],
     heading_bug: nil,
@@ -102,6 +103,24 @@ var NDCanvas = {
             .setText("HDG ---");
 
         me.heading_text.enableUpdate();
+
+        #
+        # Selected heading.
+        #
+        # The legacy ND has a separate digital heading-bug value driven by
+        # autopilot/settings/heading-bug-deg.
+        #
+
+        me.selected_heading_text = me.root
+            .createChild("text", "selected-heading")
+            .setTranslation(610, 50)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(22, 1.0)
+            .setColor(1, 0, 1, 1)
+            .setText("SEL ---");
+
+        me.selected_heading_text.enableUpdate();
 
         #
         # Heading scale
@@ -455,6 +474,7 @@ var NDCanvas = {
         me.root = nil;
 
         me.heading_text = nil;
+        me.selected_heading_text = nil;
         me.heading_scale = nil;
         me.heading_labels = [];
         me.heading_bug = nil;
@@ -523,6 +543,25 @@ var NDCanvas = {
         me.heading_text.updateText(
             sprintf("HDG %03d", rounded_heading)
         );
+
+        #
+        # Selected heading readout.
+        #
+
+        var selected_heading = me.selected_heading_prop.getValue();
+
+        if (selected_heading == nil) {
+            me.selected_heading_text.updateText("SEL ---");
+        } else {
+            var rounded_selected_heading = math.mod(
+                int(selected_heading + 0.5),
+                360
+            );
+
+            me.selected_heading_text.updateText(
+                sprintf("SEL %03d", rounded_selected_heading)
+            );
+        }
 
         #
         # Heading scale labels.
