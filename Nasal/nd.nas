@@ -18,6 +18,9 @@ var NDCanvas = {
     heading_left_arrow: nil,
     heading_right_arrow: nil,
 
+    heading_mode_group: nil,
+    wx_overlay_group: nil,
+
     sat_text: nil,
     tas_text: nil,
     gs_text: nil,
@@ -168,9 +171,19 @@ var NDCanvas = {
             .setColorFill(1, 1, 1)
             .setStrokeLineWidth(0);
 
+        #
+        # MAP-mode heading symbology.
+        #
+        # Keep all selected-heading elements under one retained group so
+        # display-mode visibility does not need to toggle each child.
+        #
+
+        me.heading_mode_group = me.root
+            .createChild("group", "heading-mode");
+
         # Selected-heading bug.
         # Geometry is local to its own origin; update() moves the element.
-        me.heading_bug = me.root
+        me.heading_bug = me.heading_mode_group
             .createChild("path", "selected-heading-bug")
             .moveTo(-10, 0)
             .lineTo(0, 11)
@@ -188,7 +201,7 @@ var NDCanvas = {
         # Off-scale selected-heading arrows.
         #
 
-        me.heading_left_arrow = me.root
+        me.heading_left_arrow = me.heading_mode_group
             .createChild("path", "heading-left-arrow")
             .moveTo(0, 0)
             .lineTo(14, -9)
@@ -199,7 +212,7 @@ var NDCanvas = {
             .setTranslation(145, 121)
             .setVisible(0);
 
-        me.heading_right_arrow = me.root
+        me.heading_right_arrow = me.heading_mode_group
             .createChild("path", "heading-right-arrow")
             .moveTo(0, 0)
             .lineTo(-14, -9)
@@ -392,25 +405,28 @@ var NDCanvas = {
         # artwork/symbology can replace them during visual-parity cleanup.
         #
 
-        me.vor_overlay_text = me.root
+        me.wx_overlay_group = me.root
+            .createChild("group", "wx-overlays");
+
+        me.wx_overlay_group.setVisible(0);
+
+        me.vor_overlay_text = me.wx_overlay_group
             .createChild("text", "vor-overlay")
             .setTranslation(275, 350)
             .setAlignment("center-center")
             .setFont("LiberationFonts/LiberationSans-Regular.ttf")
             .setFontSize(20, 1.0)
             .setColor(1, 1, 1, 1)
-            .setText("VOR")
-            .setVisible(0);
+            .setText("VOR");
 
-        me.apt_overlay_text = me.root
+        me.apt_overlay_text = me.wx_overlay_group
             .createChild("text", "apt-overlay")
             .setTranslation(493, 350)
             .setAlignment("center-center")
             .setFont("LiberationFonts/LiberationSans-Regular.ttf")
             .setFontSize(20, 1.0)
             .setColor(1, 1, 1, 1)
-            .setText("APT")
-            .setVisible(0);
+            .setText("APT");
 
         me.update_timer = maketimer(1.0 / 30.0, func {
             me.update();
@@ -444,6 +460,9 @@ var NDCanvas = {
         me.heading_bug = nil;
         me.heading_left_arrow = nil;
         me.heading_right_arrow = nil;
+
+        me.heading_mode_group = nil;
+        me.wx_overlay_group = nil;
 
         me.sat_text = nil;
         me.tas_text = nil;
@@ -652,13 +671,9 @@ var NDCanvas = {
 
         var wx_overlay = me.mfd_wx_prop.getValue();
 
-        if (wx_overlay) {
-            me.vor_overlay_text.setVisible(1);
-            me.apt_overlay_text.setVisible(1);
-        } else {
-            me.vor_overlay_text.setVisible(0);
-            me.apt_overlay_text.setVisible(0);
-        }
+        me.wx_overlay_group.setVisible(
+            wx_overlay ? 1 : 0
+        );
 
         #
         # Selected-heading bug.
@@ -669,7 +684,13 @@ var NDCanvas = {
         var bug_error = me.heading_bug_error_prop.getValue();
         var map_mode = me.mfd_map_prop.getValue();
 
-        if (!map_mode or bug_error == nil) {
+        me.heading_mode_group.setVisible(
+            map_mode ? 1 : 0
+        );
+
+        if (!map_mode) {
+            # Group visibility handles the entire MAP-mode branch.
+        } elsif (bug_error == nil) {
             me.heading_bug.setVisible(0);
             me.heading_left_arrow.setVisible(0);
             me.heading_right_arrow.setVisible(0);
