@@ -42,8 +42,8 @@ var NDCanvas = {
 
     menu_text: nil,
 
-    vor_overlay_text: nil,
-    apt_overlay_text: nil,
+    vor_overlay_symbol: nil,
+    apt_overlay_symbol: nil,
 
     heading_prop: props.globals.getNode("orientation/heading-magnetic-deg"),
     selected_heading_prop: props.globals.getNode("autopilot/settings/heading-bug-deg"),
@@ -460,23 +460,65 @@ var NDCanvas = {
 
         me.wx_overlay_group.setVisible(0);
 
-        me.vor_overlay_text = me.wx_overlay_group
-            .createChild("text", "vor-overlay")
-            .setTranslation(275, 350)
-            .setAlignment("center-center")
-            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
-            .setFontSize(20, 1.0)
-            .setColor(1, 1, 1, 1)
-            .setText("VOR");
+        #
+        # VOR symbol.
+        #
+        # Retained conventional hexagonal marker. This replaces the
+        # temporary text scaffold; exact legacy sprite matching remains
+        # deferred until the original texture artwork is ported.
+        #
 
-        me.apt_overlay_text = me.wx_overlay_group
-            .createChild("text", "apt-overlay")
-            .setTranslation(493, 350)
-            .setAlignment("center-center")
-            .setFont("LiberationFonts/LiberationSans-Regular.ttf")
-            .setFontSize(20, 1.0)
-            .setColor(1, 1, 1, 1)
-            .setText("APT");
+        me.vor_overlay_symbol = me.wx_overlay_group
+            .createChild("group", "vor-overlay")
+            .setTranslation(275, 350);
+
+        me.vor_overlay_symbol
+            .createChild("path", "vor-hexagon")
+            .moveTo(-12, 0)
+            .lineTo(-6, -10)
+            .lineTo(6, -10)
+            .lineTo(12, 0)
+            .lineTo(6, 10)
+            .lineTo(-6, 10)
+            .close()
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(2);
+
+        me.vor_overlay_symbol
+            .createChild("path", "vor-center")
+            .moveTo(-2, 0)
+            .lineTo(2, 0)
+            .moveTo(0, -2)
+            .lineTo(0, 2)
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(2);
+
+        #
+        # Airport symbol.
+        #
+        # Circular marker with simple runway cross.
+        #
+
+        me.apt_overlay_symbol = me.wx_overlay_group
+            .createChild("group", "apt-overlay")
+            .setTranslation(493, 350);
+
+        me.apt_overlay_symbol
+            .createChild("path", "apt-circle")
+            .moveTo(12, 0)
+            .arcSmallCCW(12, 12, 0, -24, 0)
+            .arcSmallCCW(12, 12, 0, 24, 0)
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(2);
+
+        me.apt_overlay_symbol
+            .createChild("path", "apt-runways")
+            .moveTo(-8, 0)
+            .lineTo(8, 0)
+            .moveTo(0, -8)
+            .lineTo(0, 8)
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(2);
 
         #
         # Instrument-light dimming overlay.
@@ -552,8 +594,8 @@ var NDCanvas = {
 
         me.menu_text = nil;
 
-        me.vor_overlay_text = nil;
-        me.apt_overlay_text = nil;
+        me.vor_overlay_symbol = nil;
+        me.apt_overlay_symbol = nil;
 
         me.initialized = 0;
 
