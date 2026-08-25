@@ -9,7 +9,7 @@ the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 -->
 
-<PropertyList>
+<PropertyList include="Aircraft/Generic/Human/Include/walker-include.xml">
     <sim include="Systems/views.xml">
         <name>Mooney M20M Bravo</name>
         <description>Mooney M20M Bravo</description>
@@ -61,6 +61,15 @@ the Free Software Foundation; either version 2 of the License, or
         <model>
             <path>Aircraft/Mooney-M20M/Models/m20.xml</path>
             <show-copilot type="bool">false</show-copilot>
+
+            <!-- Initial Walker exit position.
+                Tune against the physical cabin-door location in the 3D model. -->
+            <map>
+                <default_exit>
+                    <x-offset-m type="float">1.0</x-offset-m>
+                    <y-offset-m type="float">-2.0</y-offset-m>
+                </default_exit>
+            </map>
         </model>
 
         <previews>
@@ -256,14 +265,125 @@ the Free Software Foundation; either version 2 of the License, or
 
             <key n="115">
                 <name>s</name>
-                <desc>Hold starter through local powerplant system</desc>
-                <binding>
+                <desc>Walk backward / hold starter</desc>
+                <repeatable type="bool">false</repeatable>
+
+                <!-- Walker: move backward -->
+                <binding n="0">
+                    <condition>
+                        <or>
+                            <equals>
+                                <property>sim/current-view/name</property>
+                                <value>Walk View</value>
+                            </equals>
+                            <equals>
+                                <property>sim/current-view/name</property>
+                                <value>Walker Orbit View</value>
+                            </equals>
+                        </or>
+                    </condition>
+
+                    <command>property-assign</command>
+                    <property>sim/walker/key-triggers/forward</property>
+                    <value>-1</value>
+                </binding>
+
+                <!-- Walker: use configured walking speed -->
+                <binding n="1">
+                    <condition>
+                        <or>
+                            <equals>
+                                <property>sim/current-view/name</property>
+                                <value>Walk View</value>
+                            </equals>
+                            <equals>
+                                <property>sim/current-view/name</property>
+                                <value>Walker Orbit View</value>
+                            </equals>
+                        </or>
+                    </condition>
+
+                    <command>property-assign</command>
+                    <property>sim/walker/key-triggers/speed</property>
+                    <property>sim/walker/speed-mps</property>
+                </binding>
+
+                <!-- Aircraft: starter -->
+                <binding n="2">
+                    <condition>
+                        <and>
+                            <not-equals>
+                                <property>sim/current-view/name</property>
+                                <value>Walk View</value>
+                            </not-equals>
+                            <not-equals>
+                                <property>sim/current-view/name</property>
+                                <value>Walker Orbit View</value>
+                            </not-equals>
+                        </and>
+                    </condition>
+
                     <command>property-assign</command>
                     <property>/controls/engines/engine[0]/starter</property>
                     <value type="int">1</value>
                 </binding>
+
                 <mod-up>
-                    <binding>
+                    <!-- Walker: stop backward movement -->
+                    <binding n="0">
+                        <condition>
+                            <or>
+                                <equals>
+                                    <property>sim/current-view/name</property>
+                                    <value>Walk View</value>
+                                </equals>
+                                <equals>
+                                    <property>sim/current-view/name</property>
+                                    <value>Walker Orbit View</value>
+                                </equals>
+                            </or>
+                        </condition>
+
+                        <command>property-assign</command>
+                        <property>sim/walker/key-triggers/forward</property>
+                        <value>0</value>
+                    </binding>
+
+                    <!-- Walker: restore normal speed -->
+                    <binding n="1">
+                        <condition>
+                            <or>
+                                <equals>
+                                    <property>sim/current-view/name</property>
+                                    <value>Walk View</value>
+                                </equals>
+                                <equals>
+                                    <property>sim/current-view/name</property>
+                                    <value>Walker Orbit View</value>
+                                </equals>
+                            </or>
+                        </condition>
+
+                        <command>property-assign</command>
+                        <property>sim/walker/key-triggers/speed</property>
+                        <property>sim/walker/speed-mps</property>
+                    </binding>
+
+                    <!-- Aircraft: release starter -->
+                    <binding n="2">
+                        <condition>
+                            <and>
+                                <not-equals>
+                                    <property>sim/current-view/name</property>
+                                    <value>Walk View</value>
+                                </not-equals>
+                                <not-equals>
+                                    <property>sim/current-view/name</property>
+                                    <value>Walker Orbit View</value>
+                                </not-equals>
+                            </and>
+                        </condition>
+
                         <command>property-assign</command>
                         <property>/controls/engines/engine[0]/starter</property>
                         <value type="int">0</value>
