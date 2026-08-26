@@ -40,7 +40,8 @@ var NDCanvas = {
 
     tcas_text: nil,
 
-    menu_text: nil,
+    menu_group: nil,
+    menu_value_text: nil,
 
     vor_overlay_symbol: nil,
     apt_overlay_symbol: nil,
@@ -429,23 +430,57 @@ var NDCanvas = {
         me.tcas_text.enableUpdate();
 
         #
-        # Legacy MFD menu state.
+        # MFD menu strip.
         #
-        # The original instrument shifts a menu texture according to
+        # The legacy instrument uses a translated menu texture driven by
         # instrumentation/primus2000/mfd/menu-num.
-        # Until that artwork is ported, expose the state explicitly.
+        #
+        # Until the original artwork is reproduced in Canvas, keep the
+        # property semantics intact and present only the numeric state.
         #
 
-        me.menu_text = me.root
-            .createChild("text", "mfd-menu-state")
-            .setTranslation(384, 545)
+        me.menu_group = me.root
+            .createChild("group", "mfd-menu")
+            .setTranslation(384, 545);
+
+        # Outer menu frame.
+        me.menu_group
+            .createChild("path", "mfd-menu-frame")
+            .moveTo(-72, -16)
+            .lineTo(72, -16)
+            .lineTo(72, 16)
+            .lineTo(-72, 16)
+            .close()
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(1);
+
+        # Divider between label and state.
+        me.menu_group
+            .createChild("path", "mfd-menu-divider")
+            .moveTo(22, -16)
+            .lineTo(22, 16)
+            .setColor(1, 1, 1)
+            .setStrokeLineWidth(1);
+
+        me.menu_group
+            .createChild("text", "mfd-menu-label")
+            .setTranslation(-25, 0)
             .setAlignment("center-center")
             .setFont("LiberationFonts/LiberationSans-Regular.ttf")
+            .setFontSize(16, 1.0)
+            .setColor(1, 1, 1, 1)
+            .setText("MENU");
+
+        me.menu_value_text = me.menu_group
+            .createChild("text", "mfd-menu-value")
+            .setTranslation(47, 0)
+            .setAlignment("center-center")
+            .setFont("LiberationFonts/LiberationSans-Bold.ttf")
             .setFontSize(18, 1.0)
             .setColor(1, 1, 1, 1)
-            .setText("MENU ---");
+            .setText("---");
 
-        me.menu_text.enableUpdate();
+        me.menu_value_text.enableUpdate();
 
         #
         # Legacy VOR / airport overlay state.
@@ -592,7 +627,8 @@ var NDCanvas = {
 
         me.tcas_text = nil;
 
-        me.menu_text = nil;
+        me.menu_group = nil;
+        me.menu_value_text = nil;
 
         me.vor_overlay_symbol = nil;
         me.apt_overlay_symbol = nil;
@@ -829,10 +865,10 @@ var NDCanvas = {
         var menu_num = me.menu_num_prop.getValue();
 
         if (menu_num == nil) {
-            me.menu_text.updateText("MENU ---");
+            me.menu_value_text.updateText("---");
         } else {
-            me.menu_text.updateText(
-                sprintf("MENU %d", int(menu_num))
+            me.menu_value_text.updateText(
+                sprintf("%d", int(menu_num))
             );
         }
 
