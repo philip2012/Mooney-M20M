@@ -66,8 +66,8 @@ the Free Software Foundation; either version 2 of the License, or
                 Tune against the physical cabin-door location in the 3D model. -->
             <map>
                 <default_exit>
-                    <x-offset-m type="float">1.0</x-offset-m>
-                    <y-offset-m type="float">-2.0</y-offset-m>
+                    <x-offset-m type="float">-2.4</x-offset-m>
+                    <y-offset-m type="float">1.3</y-offset-m>
                 </default_exit>
             </map>
         </model>
@@ -189,6 +189,10 @@ the Free Software Foundation; either version 2 of the License, or
         <m20nd>
             <file>Nasal/nd.nas</file>
         </m20nd>
+
+        <walker_m20m>
+            <file>Nasal/walker.nas</file>
+        </walker_m20m>
     </nasal>
 
     <!-- Gear related stuff -->
