@@ -2433,3 +2433,271 @@ def solve_one_way_local_q_aero_structural_bending(
         left_bending=left_bending,
         right_bending=right_bending,
     )
+
+
+STANDARD_GRAVITY_FPS2 = 32.1740485564
+
+
+@dataclass(frozen=True)
+class DistributedInertialLoad:
+    y_ft: tuple[float, ...]
+
+    aerodynamic_load_lbf_per_ft: tuple[float, ...]
+
+    structural_mass_slugs_per_ft: tuple[float, ...]
+    fuel_mass_slugs_per_ft: tuple[float, ...]
+    total_mass_slugs_per_ft: tuple[float, ...]
+
+    inertial_load_lbf_per_ft: tuple[float, ...]
+    net_load_lbf_per_ft: tuple[float, ...]
+
+    @property
+    def total_inertial_force_lbf(self) -> float:
+        return integrate_distributed_load(
+            self.y_ft,
+            self.inertial_load_lbf_per_ft,
+        )
+
+    @property
+    def total_net_force_lbf(self) -> float:
+        return integrate_distributed_load(
+            self.y_ft,
+            self.net_load_lbf_per_ft,
+        )
+
+
+def pounds_mass_to_slugs(
+    mass_lbm: float,
+) -> float:
+    """
+    Convert pounds-mass to slugs.
+
+        1 slug = 32.1740485564 lbm
+    """
+
+    if not math.isfinite(mass_lbm):
+        raise ValueError(
+            "Mass must be finite"
+        )
+
+    if mass_lbm < 0.0:
+        raise ValueError(
+            "Mass cannot be negative"
+        )
+
+    return (
+        mass_lbm
+        / STANDARD_GRAVITY_FPS2
+    )
+
+
+def normalize_mass_distribution(
+    y_ft: Sequence[float],
+    relative_shape: Sequence[float],
+    total_mass_slugs: float,
+) -> tuple[float, ...]:
+    """
+    Scale an arbitrary non-negative spanwise shape so its integral
+    equals the requested total mass.
+
+    This lets later aircraft-specific models describe wing structure
+    and fuel using defensible shape functions without changing the
+    inertial-load solver.
+
+        integral m'(y) dy = total_mass
+    """
+
+    count = len(y_ft)
+
+    if count < 2:
+        raise ValueError(
+            "At least two span stations are required"
+        )
+
+    if len(relative_shape) != count:
+        raise ValueError(
+            "Mass shape length must match span grid"
+        )
+
+    if not math.isfinite(total_mass_slugs):
+        raise ValueError(
+            "Total mass must be finite"
+        )
+
+    if total_mass_slugs < 0.0:
+        raise ValueError(
+            "Total mass cannot be negative"
+        )
+
+    if not all(
+        math.isfinite(value)
+        for value in relative_shape
+    ):
+        raise ValueError(
+            "Mass shape values must be finite"
+        )
+
+    if any(
+        value < 0.0
+        for value in relative_shape
+    ):
+        raise ValueError(
+            "Mass shape cannot be negative"
+        )
+
+    # Validate the grid and obtain the unnormalised shape integral.
+    shape_integral = integrate_distributed_load(
+        y_ft,
+        relative_shape,
+    )
+
+    if total_mass_slugs == 0.0:
+        return tuple(
+            0.0
+            for _ in y_ft
+        )
+
+    if shape_integral <= 0.0:
+        raise ValueError(
+            "Non-zero mass requires a positive mass-distribution shape"
+        )
+
+    scale = (
+        total_mass_slugs
+        / shape_integral
+    )
+
+    return tuple(
+        scale * value
+        for value in relative_shape
+    )
+
+
+def solve_distributed_inertial_load(
+    *,
+    y_ft: Sequence[float],
+    aerodynamic_load_lbf_per_ft: Sequence[float],
+    structural_mass_slugs_per_ft: Sequence[float],
+    fuel_mass_slugs_per_ft: Sequence[float],
+    normal_acceleration_fps2: float,
+) -> DistributedInertialLoad:
+    """
+    Combine aerodynamic and distributed inertial loads.
+
+    Sign convention:
+
+        aerodynamic load > 0 : upward
+        acceleration     > 0 : aircraft accelerating upward
+        inertial load    < 0 : opposes that acceleration
+
+    Therefore:
+
+        p_inertial(y) = -m'(y) * a_z
+
+        p_net(y) =
+            p_aero(y)
+            + p_inertial(y)
+
+    This is the load that should be passed to the beam solver.
+
+    No FlightGear/JSBSim acceleration property is bound here yet.
+    The correct runtime property and sign convention must be verified
+    separately before production integration.
+    """
+
+    count = len(y_ft)
+
+    arrays = (
+        aerodynamic_load_lbf_per_ft,
+        structural_mass_slugs_per_ft,
+        fuel_mass_slugs_per_ft,
+    )
+
+    if any(
+        len(values) != count
+        for values in arrays
+    ):
+        raise ValueError(
+            "All distributed-load arrays must match the span grid"
+        )
+
+    if not math.isfinite(
+        normal_acceleration_fps2
+    ):
+        raise ValueError(
+            "Normal acceleration must be finite"
+        )
+
+    # This also validates increasing span stations.
+    integrate_distributed_load(
+        y_ft,
+        tuple(
+            0.0
+            for _ in y_ft
+        ),
+    )
+
+    if not all(
+        math.isfinite(value)
+        for values in arrays
+        for value in values
+    ):
+        raise ValueError(
+            "Distributed load and mass values must be finite"
+        )
+
+    if any(
+        value < 0.0
+        for value in structural_mass_slugs_per_ft
+    ):
+        raise ValueError(
+            "Structural mass distribution cannot be negative"
+        )
+
+    if any(
+        value < 0.0
+        for value in fuel_mass_slugs_per_ft
+    ):
+        raise ValueError(
+            "Fuel mass distribution cannot be negative"
+        )
+
+    total_mass = tuple(
+        structural_mass_slugs_per_ft[i]
+        + fuel_mass_slugs_per_ft[i]
+        for i in range(count)
+    )
+
+    inertial_load = tuple(
+        -total_mass[i]
+        * normal_acceleration_fps2
+        for i in range(count)
+    )
+
+    net_load = tuple(
+        aerodynamic_load_lbf_per_ft[i]
+        + inertial_load[i]
+        for i in range(count)
+    )
+
+    return DistributedInertialLoad(
+        y_ft=tuple(
+            float(value)
+            for value in y_ft
+        ),
+        aerodynamic_load_lbf_per_ft=tuple(
+            float(value)
+            for value in aerodynamic_load_lbf_per_ft
+        ),
+        structural_mass_slugs_per_ft=tuple(
+            float(value)
+            for value in structural_mass_slugs_per_ft
+        ),
+        fuel_mass_slugs_per_ft=tuple(
+            float(value)
+            for value in fuel_mass_slugs_per_ft
+        ),
+        total_mass_slugs_per_ft=total_mass,
+        inertial_load_lbf_per_ft=inertial_load,
+        net_load_lbf_per_ft=net_load,
+    )

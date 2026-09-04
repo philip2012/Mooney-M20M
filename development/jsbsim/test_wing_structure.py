@@ -34,6 +34,10 @@ from wing_structure import (
     section_flow_properties,
     extract_half_wing_local_q_load,
     solve_one_way_local_q_aero_structural_bending,
+    STANDARD_GRAVITY_FPS2,
+    normalize_mass_distribution,
+    pounds_mass_to_slugs,
+    solve_distributed_inertial_load,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -2341,6 +2345,325 @@ class TestLocalDynamicPressureCoupling(unittest.TestCase):
                 semi_span_ft=self.planform.semi_span_ft,
                 tip_chord_ft=self.planform.tip_chord_ft,
             )
+
+
+class TestDistributedInertialLoading(unittest.TestCase):
+    def setUp(self):
+        self.y = make_uniform_span_grid(
+            10.0,
+            101,
+        )
+
+    def test_pounds_mass_to_slugs(self):
+        mass = pounds_mass_to_slugs(
+            STANDARD_GRAVITY_FPS2
+        )
+
+        self.assertTrue(
+            math.isclose(
+                mass,
+                1.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_normalized_mass_reconstructs_total_mass(self):
+        shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+        expected_mass = 8.0
+
+        distribution = normalize_mass_distribution(
+            self.y,
+            shape,
+            expected_mass,
+        )
+
+        calculated = integrate_distributed_load(
+            self.y,
+            distribution,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                calculated,
+                expected_mass,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_zero_mass_produces_zero_distribution(self):
+        shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+        distribution = normalize_mass_distribution(
+            self.y,
+            shape,
+            0.0,
+        )
+
+        self.assertTrue(
+            all(
+                value == 0.0
+                for value in distribution
+            )
+        )
+
+    def test_negative_mass_shape_is_rejected(self):
+        shape = tuple(
+            -1.0
+            if i == 20
+            else 1.0
+            for i in range(len(self.y))
+        )
+
+        with self.assertRaises(ValueError):
+            normalize_mass_distribution(
+                self.y,
+                shape,
+                5.0,
+            )
+
+    def test_one_g_fuel_inertia_equals_fuel_weight(self):
+        # Current M20M FDM tank capacity per side.
+        fuel_mass_lbm = 267.0
+
+        fuel_mass_slugs = pounds_mass_to_slugs(
+            fuel_mass_lbm
+        )
+
+        fuel_shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+        fuel_distribution = normalize_mass_distribution(
+            self.y,
+            fuel_shape,
+            fuel_mass_slugs,
+        )
+
+        zero_structure = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        zero_aero = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        result = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=zero_aero,
+            structural_mass_slugs_per_ft=zero_structure,
+            fuel_mass_slugs_per_ft=fuel_distribution,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.total_inertial_force_lbf,
+                -267.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_two_g_doubles_inertial_force(self):
+        mass = pounds_mass_to_slugs(
+            100.0
+        )
+
+        shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+        distribution = normalize_mass_distribution(
+            self.y,
+            shape,
+            mass,
+        )
+
+        zero = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        one_g = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=zero,
+            structural_mass_slugs_per_ft=distribution,
+            fuel_mass_slugs_per_ft=zero,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+        )
+
+        two_g = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=zero,
+            structural_mass_slugs_per_ft=distribution,
+            fuel_mass_slugs_per_ft=zero,
+            normal_acceleration_fps2=(
+                2.0
+                * STANDARD_GRAVITY_FPS2
+            ),
+        )
+
+        self.assertTrue(
+            math.isclose(
+                two_g.total_inertial_force_lbf,
+                2.0
+                * one_g.total_inertial_force_lbf,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_upward_acceleration_produces_downward_inertial_load(self):
+        mass = normalize_mass_distribution(
+            self.y,
+            tuple(
+                1.0
+                for _ in self.y
+            ),
+            5.0,
+        )
+
+        zero = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        result = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=zero,
+            structural_mass_slugs_per_ft=mass,
+            fuel_mass_slugs_per_ft=zero,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+        )
+
+        self.assertTrue(
+            all(
+                value <= 0.0
+                for value in result.inertial_load_lbf_per_ft
+            )
+        )
+
+        self.assertLess(
+            result.total_inertial_force_lbf,
+            0.0,
+        )
+
+    def test_net_load_is_aero_plus_inertia(self):
+        aero = tuple(
+            100.0
+            for _ in self.y
+        )
+
+        structural_mass = normalize_mass_distribution(
+            self.y,
+            tuple(
+                1.0
+                for _ in self.y
+            ),
+            pounds_mass_to_slugs(
+                50.0
+            ),
+        )
+
+        fuel_mass = normalize_mass_distribution(
+            self.y,
+            tuple(
+                1.0
+                for _ in self.y
+            ),
+            pounds_mass_to_slugs(
+                25.0
+            ),
+        )
+
+        result = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=aero,
+            structural_mass_slugs_per_ft=structural_mass,
+            fuel_mass_slugs_per_ft=fuel_mass,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+        )
+
+        for aero_load, inertia, net in zip(
+            result.aerodynamic_load_lbf_per_ft,
+            result.inertial_load_lbf_per_ft,
+            result.net_load_lbf_per_ft,
+        ):
+            self.assertTrue(
+                math.isclose(
+                    net,
+                    aero_load + inertia,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_more_fuel_reduces_net_upward_load_at_positive_g(self):
+        aero = tuple(
+            100.0
+            for _ in self.y
+        )
+
+        zero = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        light_fuel = normalize_mass_distribution(
+            self.y,
+            tuple(
+                1.0
+                for _ in self.y
+            ),
+            pounds_mass_to_slugs(
+                50.0
+            ),
+        )
+
+        heavy_fuel = normalize_mass_distribution(
+            self.y,
+            tuple(
+                1.0
+                for _ in self.y
+            ),
+            pounds_mass_to_slugs(
+                200.0
+            ),
+        )
+
+        light = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=aero,
+            structural_mass_slugs_per_ft=zero,
+            fuel_mass_slugs_per_ft=light_fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+        )
+
+        heavy = solve_distributed_inertial_load(
+            y_ft=self.y,
+            aerodynamic_load_lbf_per_ft=aero,
+            structural_mass_slugs_per_ft=zero,
+            fuel_mass_slugs_per_ft=heavy_fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+        )
+
+        self.assertLess(
+            heavy.total_net_force_lbf,
+            light.total_net_force_lbf,
+        )
 
 
 if __name__ == "__main__":
