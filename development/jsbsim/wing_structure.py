@@ -775,3 +775,539 @@ def local_section_flow(
         roll_delta_alpha_rad=roll_delta_alpha_rad,
         effective_alpha_rad=effective_alpha_rad,
     )
+
+
+@dataclass(frozen=True)
+class LiftingLineSolution:
+    theta_rad: tuple[float, ...]
+    signed_y_ft: tuple[float, ...]
+    chord_ft: tuple[float, ...]
+
+    alpha_geometric_rad: tuple[float, ...]
+    alpha_zero_lift_rad: tuple[float, ...]
+    induced_alpha_rad: tuple[float, ...]
+
+    section_cl: tuple[float, ...]
+
+    fourier_coefficients: tuple[float, ...]
+
+    wing_cl: float
+    induced_cd: float
+    span_efficiency: float
+
+
+def make_lifting_line_collocation(
+    wingspan_ft: float,
+    station_count: int,
+) -> tuple[
+    tuple[float, ...],
+    tuple[float, ...],
+]:
+    """
+    Create full-wing Prandtl lifting-line collocation stations.
+
+    theta runs from just above 0 to just below pi.
+
+    Span convention:
+
+        y < 0 : left wing
+        y = 0 : centerline
+        y > 0 : right wing
+
+    using:
+
+        y = -(b / 2) cos(theta)
+
+    Tip endpoints themselves are deliberately excluded because the
+    lifting-line equations contain terms divided by sin(theta).
+    """
+
+    if not math.isfinite(wingspan_ft):
+        raise ValueError(
+            "Wingspan must be finite"
+        )
+
+    if wingspan_ft <= 0.0:
+        raise ValueError(
+            "Wingspan must be positive"
+        )
+
+    if station_count < 3:
+        raise ValueError(
+            "At least three lifting-line stations are required"
+        )
+
+    theta = tuple(
+        (i + 1)
+        * math.pi
+        / (station_count + 1)
+        for i in range(station_count)
+    )
+
+    signed_y = tuple(
+        -0.5
+        * wingspan_ft
+        * math.cos(angle)
+        for angle in theta
+    )
+
+    return theta, signed_y
+
+
+def _solve_linear_system(
+    matrix: Sequence[Sequence[float]],
+    rhs: Sequence[float],
+) -> tuple[float, ...]:
+    """
+    Solve Ax = b using Gaussian elimination with partial pivoting.
+
+    Kept local and dependency-free so the wing prototype does not
+    require NumPy.
+    """
+
+    count = len(rhs)
+
+    if len(matrix) != count:
+        raise ValueError(
+            "Matrix row count must match RHS length"
+        )
+
+    a = [
+        [float(value) for value in row]
+        for row in matrix
+    ]
+
+    b = [
+        float(value)
+        for value in rhs
+    ]
+
+    if any(
+        len(row) != count
+        for row in a
+    ):
+        raise ValueError(
+            "Linear-system matrix must be square"
+        )
+
+    for column in range(count):
+        pivot = max(
+            range(column, count),
+            key=lambda row: abs(
+                a[row][column]
+            ),
+        )
+
+        pivot_value = a[pivot][column]
+
+        if abs(pivot_value) < 1e-14:
+            raise ValueError(
+                "Lifting-line system is singular"
+            )
+
+        if pivot != column:
+            a[column], a[pivot] = (
+                a[pivot],
+                a[column],
+            )
+
+            b[column], b[pivot] = (
+                b[pivot],
+                b[column],
+            )
+
+        for row in range(
+            column + 1,
+            count,
+        ):
+            factor = (
+                a[row][column]
+                / a[column][column]
+            )
+
+            if factor == 0.0:
+                continue
+
+            a[row][column] = 0.0
+
+            for j in range(
+                column + 1,
+                count,
+            ):
+                a[row][j] -= (
+                    factor
+                    * a[column][j]
+                )
+
+            b[row] -= (
+                factor
+                * b[column]
+            )
+
+    solution = [0.0] * count
+
+    for row in range(
+        count - 1,
+        -1,
+        -1,
+    ):
+        residual = b[row]
+
+        for column in range(
+            row + 1,
+            count,
+        ):
+            residual -= (
+                a[row][column]
+                * solution[column]
+            )
+
+        solution[row] = (
+            residual
+            / a[row][row]
+        )
+
+    return tuple(solution)
+
+
+def lifting_line_series(
+    coefficients: Sequence[float],
+    theta_rad: float,
+) -> float:
+    """
+    Evaluate:
+
+        sum(A_n sin(n theta))
+    """
+
+    if not math.isfinite(theta_rad):
+        raise ValueError(
+            "Theta must be finite"
+        )
+
+    return sum(
+        coefficient
+        * math.sin(
+            harmonic
+            * theta_rad
+        )
+        for harmonic, coefficient in enumerate(
+            coefficients,
+            start=1,
+        )
+    )
+
+
+def solve_lifting_line(
+    *,
+    wingspan_ft: float,
+    wing_area_sqft: float,
+    theta_rad: Sequence[float],
+    chord_ft: Sequence[float],
+    alpha_geometric_rad: Sequence[float],
+    lift_curve_slope_per_rad: Sequence[float],
+    alpha_zero_lift_rad: Sequence[float] | None = None,
+) -> LiftingLineSolution:
+    """
+    Solve the classical Prandtl lifting-line equations.
+
+    The model supports arbitrary full-wing distributions of:
+
+        chord
+        geometric/effective incidence
+        2-D lift-curve slope
+        zero-lift AoA
+
+    so asymmetric roll, ailerons, gusts, and aeroelastic twist can
+    later be supplied without changing the solver architecture.
+
+    This is a linear attached-flow lifting-line solver.
+
+    It does NOT yet model:
+
+        section stall
+        nonlinear airfoil polars
+        viscous profile drag
+        compressibility
+        dynamic stall
+        unsteady aerodynamics
+    """
+
+    count = len(theta_rad)
+
+    if count < 3:
+        raise ValueError(
+            "At least three lifting-line stations are required"
+        )
+
+    arrays = (
+        chord_ft,
+        alpha_geometric_rad,
+        lift_curve_slope_per_rad,
+    )
+
+    if any(
+        len(values) != count
+        for values in arrays
+    ):
+        raise ValueError(
+            "All lifting-line arrays must have equal length"
+        )
+
+    if alpha_zero_lift_rad is None:
+        alpha_zero_lift = tuple(
+            0.0
+            for _ in range(count)
+        )
+    else:
+        if len(alpha_zero_lift_rad) != count:
+            raise ValueError(
+                "Zero-lift AoA array length must match stations"
+            )
+
+        alpha_zero_lift = tuple(
+            float(value)
+            for value in alpha_zero_lift_rad
+        )
+
+    scalar_values = (
+        wingspan_ft,
+        wing_area_sqft,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in scalar_values
+    ):
+        raise ValueError(
+            "Wing dimensions must be finite"
+        )
+
+    if wingspan_ft <= 0.0:
+        raise ValueError(
+            "Wingspan must be positive"
+        )
+
+    if wing_area_sqft <= 0.0:
+        raise ValueError(
+            "Wing area must be positive"
+        )
+
+    all_arrays = (
+        theta_rad,
+        chord_ft,
+        alpha_geometric_rad,
+        lift_curve_slope_per_rad,
+        alpha_zero_lift,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for values in all_arrays
+        for value in values
+    ):
+        raise ValueError(
+            "Lifting-line inputs must all be finite"
+        )
+
+    if any(
+        value <= 0.0
+        for value in chord_ft
+    ):
+        raise ValueError(
+            "Chord must be positive at every station"
+        )
+
+    if any(
+        value <= 0.0
+        for value in lift_curve_slope_per_rad
+    ):
+        raise ValueError(
+            "Lift-curve slope must be positive"
+        )
+
+    theta = tuple(
+        float(value)
+        for value in theta_rad
+    )
+
+    for angle in theta:
+        if not 0.0 < angle < math.pi:
+            raise ValueError(
+                "Collocation theta must lie inside (0, pi)"
+            )
+
+    for i in range(count - 1):
+        if theta[i + 1] <= theta[i]:
+            raise ValueError(
+                "Theta stations must be strictly increasing"
+            )
+
+    chord = tuple(
+        float(value)
+        for value in chord_ft
+    )
+
+    alpha = tuple(
+        float(value)
+        for value in alpha_geometric_rad
+    )
+
+    a0 = tuple(
+        float(value)
+        for value in lift_curve_slope_per_rad
+    )
+
+    matrix = []
+    rhs = []
+
+    for i in range(count):
+        sin_theta = math.sin(
+            theta[i]
+        )
+
+        row = []
+
+        for harmonic in range(
+            1,
+            count + 1,
+        ):
+            sin_n_theta = math.sin(
+                harmonic
+                * theta[i]
+            )
+
+            row.append(
+                sin_n_theta
+                * (
+                    (
+                        4.0
+                        * wingspan_ft
+                        / (
+                            a0[i]
+                            * chord[i]
+                        )
+                    )
+                    + (
+                        harmonic
+                        / sin_theta
+                    )
+                )
+            )
+
+        matrix.append(row)
+
+        rhs.append(
+            alpha[i]
+            - alpha_zero_lift[i]
+        )
+
+    coefficients = _solve_linear_system(
+        matrix,
+        rhs,
+    )
+
+    signed_y = tuple(
+        -0.5
+        * wingspan_ft
+        * math.cos(angle)
+        for angle in theta
+    )
+
+    circulation_shape = tuple(
+        lifting_line_series(
+            coefficients,
+            angle,
+        )
+        for angle in theta
+    )
+
+    induced_alpha = []
+
+    section_cl = []
+
+    for i, angle in enumerate(theta):
+        sin_theta = math.sin(
+            angle
+        )
+
+        induced = sum(
+            harmonic
+            * coefficient
+            * math.sin(
+                harmonic
+                * angle
+            )
+            / sin_theta
+            for harmonic, coefficient in enumerate(
+                coefficients,
+                start=1,
+            )
+        )
+
+        induced_alpha.append(
+            induced
+        )
+
+        section_cl.append(
+            (
+                4.0
+                * wingspan_ft
+                / chord[i]
+            )
+            * circulation_shape[i]
+        )
+
+    aspect_ratio = (
+        wingspan_ft ** 2
+        / wing_area_sqft
+    )
+
+    wing_cl = (
+        math.pi
+        * aspect_ratio
+        * coefficients[0]
+    )
+
+    induced_cd = (
+        math.pi
+        * aspect_ratio
+        * sum(
+            harmonic
+            * coefficient ** 2
+            for harmonic, coefficient in enumerate(
+                coefficients,
+                start=1,
+            )
+        )
+    )
+
+    if induced_cd > 1e-16:
+        span_efficiency = (
+            wing_cl ** 2
+            / (
+                math.pi
+                * aspect_ratio
+                * induced_cd
+            )
+        )
+    else:
+        span_efficiency = 1.0
+
+    return LiftingLineSolution(
+        theta_rad=theta,
+        signed_y_ft=signed_y,
+        chord_ft=chord,
+        alpha_geometric_rad=alpha,
+        alpha_zero_lift_rad=alpha_zero_lift,
+        induced_alpha_rad=tuple(
+            induced_alpha
+        ),
+        section_cl=tuple(
+            section_cl
+        ),
+        fourier_coefficients=coefficients,
+        wing_cl=wing_cl,
+        induced_cd=induced_cd,
+        span_efficiency=span_efficiency,
+    )

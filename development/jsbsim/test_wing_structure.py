@@ -6,14 +6,16 @@ import unittest
 from wing_structure import (
     derive_trapezoidal_planform,
     integrate_distributed_load,
+    lifting_line_series,
     linear_chord_ft,
     local_section_flow,
+    make_lifting_line_collocation,
     make_trapezoidal_strips,
     make_uniform_span_grid,
     sectional_lift_lbf_per_ft,
     solve_cantilever_bending,
+    solve_lifting_line,
 )
-
 
 MOONEY_WING_AREA_SQFT = 174.786
 MOONEY_WINGSPAN_FT = 36.0833
@@ -697,6 +699,351 @@ class TestLocalSectionFlow(unittest.TestCase):
                 roll_rate_rad_s=0.5,
                 signed_y_ft=10.0,
             )
+
+
+class TestLiftingLine(unittest.TestCase):
+    def setUp(self):
+        self.wingspan_ft = 36.0
+        self.aspect_ratio = 8.0
+
+        self.wing_area_sqft = (
+            self.wingspan_ft ** 2
+            / self.aspect_ratio
+        )
+
+        self.station_count = 21
+
+        (
+            self.theta,
+            self.signed_y,
+        ) = make_lifting_line_collocation(
+            self.wingspan_ft,
+            self.station_count,
+        )
+
+        # Exact elliptical planform:
+        #
+        #   c(theta) = c_root sin(theta)
+        #
+        # with:
+        #
+        #   AR = 4b / (pi c_root)
+        self.root_chord_ft = (
+            4.0
+            * self.wingspan_ft
+            / (
+                math.pi
+                * self.aspect_ratio
+            )
+        )
+
+        self.chord = tuple(
+            self.root_chord_ft
+            * math.sin(angle)
+            for angle in self.theta
+        )
+
+        self.a0 = 2.0 * math.pi
+
+    def solve_constant_alpha(
+        self,
+        alpha_rad,
+    ):
+        alpha = tuple(
+            alpha_rad
+            for _ in self.theta
+        )
+
+        a0 = tuple(
+            self.a0
+            for _ in self.theta
+        )
+
+        return solve_lifting_line(
+            wingspan_ft=self.wingspan_ft,
+            wing_area_sqft=self.wing_area_sqft,
+            theta_rad=self.theta,
+            chord_ft=self.chord,
+            alpha_geometric_rad=alpha,
+            lift_curve_slope_per_rad=a0,
+        )
+
+    def test_zero_alpha_produces_zero_lift(self):
+        result = self.solve_constant_alpha(
+            0.0
+        )
+
+        self.assertAlmostEqual(
+            result.wing_cl,
+            0.0,
+            places=12,
+        )
+
+        self.assertTrue(
+            all(
+                abs(value) < 1e-12
+                for value in result.section_cl
+            )
+        )
+
+    def test_elliptical_wing_matches_finite_wing_lift_slope(self):
+        alpha = 0.08
+
+        result = self.solve_constant_alpha(
+            alpha
+        )
+
+        expected_slope = (
+            self.a0
+            / (
+                1.0
+                + (
+                    self.a0
+                    / (
+                        math.pi
+                        * self.aspect_ratio
+                    )
+                )
+            )
+        )
+
+        expected_cl = (
+            expected_slope
+            * alpha
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.wing_cl,
+                expected_cl,
+                rel_tol=1e-9,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_elliptical_wing_uses_only_first_mode(self):
+        result = self.solve_constant_alpha(
+            0.08
+        )
+
+        for coefficient in (
+            result.fourier_coefficients[1:]
+        ):
+            self.assertLess(
+                abs(coefficient),
+                1e-10,
+            )
+
+    def test_elliptical_loading_is_symmetric(self):
+        result = self.solve_constant_alpha(
+            0.08
+        )
+
+        for left, right in zip(
+            result.section_cl,
+            reversed(
+                result.section_cl
+            ),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-10,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_positive_lift_has_positive_induced_alpha(self):
+        result = self.solve_constant_alpha(
+            0.08
+        )
+
+        self.assertTrue(
+            all(
+                value > 0.0
+                for value in result.induced_alpha_rad
+            )
+        )
+
+    def test_elliptical_wing_has_unit_span_efficiency(self):
+        result = self.solve_constant_alpha(
+            0.08
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.span_efficiency,
+                1.0,
+                rel_tol=1e-9,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_double_alpha_doubles_wing_lift(self):
+        low = self.solve_constant_alpha(
+            0.04
+        )
+
+        high = self.solve_constant_alpha(
+            0.08
+        )
+
+        self.assertTrue(
+            math.isclose(
+                high.wing_cl,
+                2.0 * low.wing_cl,
+                rel_tol=1e-10,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_circulation_goes_to_zero_at_tips(self):
+        result = self.solve_constant_alpha(
+            0.08
+        )
+
+        left_tip = lifting_line_series(
+            result.fourier_coefficients,
+            0.0,
+        )
+
+        right_tip = lifting_line_series(
+            result.fourier_coefficients,
+            math.pi,
+        )
+
+        self.assertAlmostEqual(
+            left_tip,
+            0.0,
+            places=12,
+        )
+
+        self.assertAlmostEqual(
+            right_tip,
+            0.0,
+            places=12,
+        )
+
+    def test_higher_aspect_ratio_approaches_2d_slope(self):
+        alpha = 0.05
+
+        low_ar = 4.0
+        high_ar = 20.0
+
+        def solve_for_ar(ar):
+            area = (
+                self.wingspan_ft ** 2
+                / ar
+            )
+
+            root_chord = (
+                4.0
+                * self.wingspan_ft
+                / (
+                    math.pi
+                    * ar
+                )
+            )
+
+            chord = tuple(
+                root_chord
+                * math.sin(angle)
+                for angle in self.theta
+            )
+
+            alpha_distribution = tuple(
+                alpha
+                for _ in self.theta
+            )
+
+            a0_distribution = tuple(
+                self.a0
+                for _ in self.theta
+            )
+
+            return solve_lifting_line(
+                wingspan_ft=self.wingspan_ft,
+                wing_area_sqft=area,
+                theta_rad=self.theta,
+                chord_ft=chord,
+                alpha_geometric_rad=alpha_distribution,
+                lift_curve_slope_per_rad=a0_distribution,
+            )
+
+        low = solve_for_ar(
+            low_ar
+        )
+
+        high = solve_for_ar(
+            high_ar
+        )
+
+        low_slope = (
+            low.wing_cl
+            / alpha
+        )
+
+        high_slope = (
+            high.wing_cl
+            / alpha
+        )
+
+        self.assertGreater(
+            high_slope,
+            low_slope,
+        )
+
+        self.assertLess(
+            abs(
+                self.a0
+                - high_slope
+            ),
+            abs(
+                self.a0
+                - low_slope
+            ),
+        )
+
+    def test_asymmetric_alpha_breaks_left_right_symmetry(self):
+        a0 = tuple(
+            self.a0
+            for _ in self.theta
+        )
+
+        alpha = tuple(
+            0.06
+            + 0.001
+            * y
+            for y in self.signed_y
+        )
+
+        result = solve_lifting_line(
+            wingspan_ft=self.wingspan_ft,
+            wing_area_sqft=self.wing_area_sqft,
+            theta_rad=self.theta,
+            chord_ft=self.chord,
+            alpha_geometric_rad=alpha,
+            lift_curve_slope_per_rad=a0,
+        )
+
+        half = (
+            self.station_count
+            // 2
+        )
+
+        left = result.section_cl[
+            half - 3
+        ]
+
+        right = result.section_cl[
+            half + 3
+        ]
+
+        self.assertGreater(
+            right,
+            left,
+        )
 
 
 if __name__ == "__main__":
