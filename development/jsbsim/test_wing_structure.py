@@ -5,8 +5,11 @@ import unittest
 
 from wing_structure import (
     derive_trapezoidal_planform,
+    integrate_distributed_load,
     linear_chord_ft,
+    make_trapezoidal_strips,
     make_uniform_span_grid,
+    sectional_lift_lbf_per_ft,
     solve_cantilever_bending,
 )
 
@@ -337,6 +340,219 @@ class TestCantileverBending(unittest.TestCase):
                 (0.0, 1.0, 2.0),
                 (1.0, 1.0, 1.0),
                 (1000.0, 0.0, 1000.0),
+            )
+
+
+class TestSpanwiseGeometry(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+    def test_strip_areas_reconstruct_half_wing(self):
+        strips = make_trapezoidal_strips(
+            self.planform,
+            strip_count=16,
+        )
+
+        calculated = sum(
+            strip.area_sqft
+            for strip in strips
+        )
+
+        expected = (
+            MOONEY_WING_AREA_SQFT
+            / 2.0
+        )
+
+        self.assertTrue(
+            math.isclose(
+                calculated,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_strips_are_contiguous(self):
+        strips = make_trapezoidal_strips(
+            self.planform,
+            strip_count=16,
+        )
+
+        self.assertAlmostEqual(
+            strips[0].y_inner_ft,
+            0.0,
+            places=12,
+        )
+
+        self.assertAlmostEqual(
+            strips[-1].y_outer_ft,
+            self.planform.semi_span_ft,
+            places=12,
+        )
+
+        for inner, outer in zip(
+            strips[:-1],
+            strips[1:],
+        ):
+            self.assertAlmostEqual(
+                inner.y_outer_ft,
+                outer.y_inner_ft,
+                places=12,
+            )
+
+    def test_strip_centroid_lies_inside_strip(self):
+        strips = make_trapezoidal_strips(
+            self.planform,
+            strip_count=16,
+        )
+
+        for strip in strips:
+            self.assertGreater(
+                strip.y_centroid_ft,
+                strip.y_inner_ft,
+            )
+
+            self.assertLess(
+                strip.y_centroid_ft,
+                strip.y_outer_ft,
+            )
+
+
+class TestSectionalAerodynamics(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.y = make_uniform_span_grid(
+            self.planform.semi_span_ft,
+            101,
+        )
+
+        self.chord = tuple(
+            linear_chord_ft(
+                self.planform,
+                y,
+            )
+            for y in self.y
+        )
+
+    def test_constant_cl_reconstructs_half_wing_lift(self):
+        qbar = 50.0
+        cl_value = 0.8
+
+        cl = tuple(
+            cl_value
+            for _ in self.y
+        )
+
+        lift_distribution = sectional_lift_lbf_per_ft(
+            self.y,
+            self.chord,
+            cl,
+            qbar,
+        )
+
+        calculated = integrate_distributed_load(
+            self.y,
+            lift_distribution,
+        )
+
+        expected = (
+            qbar
+            * (
+                MOONEY_WING_AREA_SQFT
+                / 2.0
+            )
+            * cl_value
+        )
+
+        self.assertTrue(
+            math.isclose(
+                calculated,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_zero_cl_produces_zero_lift(self):
+        cl = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        lift_distribution = sectional_lift_lbf_per_ft(
+            self.y,
+            self.chord,
+            cl,
+            100.0,
+        )
+
+        self.assertTrue(
+            all(
+                value == 0.0
+                for value in lift_distribution
+            )
+        )
+
+    def test_negative_cl_produces_downward_load(self):
+        cl = tuple(
+            -0.5
+            for _ in self.y
+        )
+
+        lift_distribution = sectional_lift_lbf_per_ft(
+            self.y,
+            self.chord,
+            cl,
+            100.0,
+        )
+
+        self.assertTrue(
+            all(
+                value < 0.0
+                for value in lift_distribution
+            )
+        )
+
+    def test_dynamic_pressure_scales_linearly(self):
+        cl = tuple(
+            0.7
+            for _ in self.y
+        )
+
+        low = sectional_lift_lbf_per_ft(
+            self.y,
+            self.chord,
+            cl,
+            40.0,
+        )
+
+        high = sectional_lift_lbf_per_ft(
+            self.y,
+            self.chord,
+            cl,
+            80.0,
+        )
+
+        for low_value, high_value in zip(
+            low,
+            high,
+        ):
+            self.assertTrue(
+                math.isclose(
+                    high_value,
+                    2.0 * low_value,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
             )
 
 

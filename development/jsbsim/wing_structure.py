@@ -414,3 +414,254 @@ def solve_cantilever_bending(
         slope_rad=tuple(slope),
         deflection_ft=tuple(deflection),
     )
+
+
+@dataclass(frozen=True)
+class WingStrip:
+    index: int
+
+    y_inner_ft: float
+    y_outer_ft: float
+    y_centroid_ft: float
+
+    chord_inner_ft: float
+    chord_outer_ft: float
+
+    area_sqft: float
+
+    @property
+    def width_ft(self) -> float:
+        return (
+            self.y_outer_ft
+            - self.y_inner_ft
+        )
+
+
+def make_trapezoidal_strips(
+    planform: TrapezoidalPlanform,
+    strip_count: int,
+) -> tuple[WingStrip, ...]:
+    """
+    Divide one half-wing into trapezoidal spanwise strips.
+
+    This currently uses the idealized trapezoidal planform derived
+    from the published wing area, span, and taper ratio.
+
+    Replace with actual Mooney station geometry later if better
+    source data becomes available.
+    """
+
+    if strip_count < 1:
+        raise ValueError(
+            "At least one wing strip is required"
+        )
+
+    edges = make_uniform_span_grid(
+        planform.semi_span_ft,
+        strip_count + 1,
+    )
+
+    strips = []
+
+    for index in range(strip_count):
+        y_inner = edges[index]
+        y_outer = edges[index + 1]
+
+        chord_inner = linear_chord_ft(
+            planform,
+            y_inner,
+        )
+
+        chord_outer = linear_chord_ft(
+            planform,
+            y_outer,
+        )
+
+        width = (
+            y_outer
+            - y_inner
+        )
+
+        area = (
+            0.5
+            * (
+                chord_inner
+                + chord_outer
+            )
+            * width
+        )
+
+        # Exact spanwise centroid for a strip whose chord varies
+        # linearly between the two edges.
+        centroid_offset = (
+            width
+            * (
+                chord_inner
+                + 2.0 * chord_outer
+            )
+            / (
+                3.0
+                * (
+                    chord_inner
+                    + chord_outer
+                )
+            )
+        )
+
+        strips.append(
+            WingStrip(
+                index=index,
+                y_inner_ft=y_inner,
+                y_outer_ft=y_outer,
+                y_centroid_ft=(
+                    y_inner
+                    + centroid_offset
+                ),
+                chord_inner_ft=chord_inner,
+                chord_outer_ft=chord_outer,
+                area_sqft=area,
+            )
+        )
+
+    return tuple(strips)
+
+
+def sectional_lift_lbf_per_ft(
+    y_ft: Sequence[float],
+    chord_ft: Sequence[float],
+    cl: Sequence[float],
+    qbar_psf: float,
+) -> tuple[float, ...]:
+    """
+    Calculate local aerodynamic lift per unit span.
+
+        L'(y) = qbar * c(y) * CL(y)
+
+    Units:
+
+        lb/ft = lb/ft^2 * ft
+
+    Positive CL gives positive upward loading.
+    """
+
+    count = len(y_ft)
+
+    if count < 2:
+        raise ValueError(
+            "At least two span stations are required"
+        )
+
+    if len(chord_ft) != count:
+        raise ValueError(
+            "Chord array length must match span array length"
+        )
+
+    if len(cl) != count:
+        raise ValueError(
+            "CL array length must match span array length"
+        )
+
+    if not math.isfinite(qbar_psf):
+        raise ValueError(
+            "Dynamic pressure must be finite"
+        )
+
+    if qbar_psf < 0.0:
+        raise ValueError(
+            "Dynamic pressure cannot be negative"
+        )
+
+    for name, values in (
+        ("span", y_ft),
+        ("chord", chord_ft),
+        ("CL", cl),
+    ):
+        if not all(
+            math.isfinite(value)
+            for value in values
+        ):
+            raise ValueError(
+                f"{name} values must all be finite"
+            )
+
+    for i in range(count - 1):
+        if y_ft[i + 1] <= y_ft[i]:
+            raise ValueError(
+                "Span stations must be strictly increasing"
+            )
+
+    if any(
+        value <= 0.0
+        for value in chord_ft
+    ):
+        raise ValueError(
+            "Chord must be positive"
+        )
+
+    return tuple(
+        qbar_psf
+        * chord_ft[i]
+        * cl[i]
+        for i in range(count)
+    )
+
+
+def integrate_distributed_load(
+    y_ft: Sequence[float],
+    load_lbf_per_ft: Sequence[float],
+) -> float:
+    """
+    Integrate a spanwise distributed load using the trapezoidal rule.
+    """
+
+    count = len(y_ft)
+
+    if count < 2:
+        raise ValueError(
+            "At least two span stations are required"
+        )
+
+    if len(load_lbf_per_ft) != count:
+        raise ValueError(
+            "Load array length must match span array length"
+        )
+
+    if not all(
+        math.isfinite(value)
+        for value in y_ft
+    ):
+        raise ValueError(
+            "Span values must all be finite"
+        )
+
+    if not all(
+        math.isfinite(value)
+        for value in load_lbf_per_ft
+    ):
+        raise ValueError(
+            "Load values must all be finite"
+        )
+
+    total = 0.0
+
+    for i in range(count - 1):
+        dx = (
+            y_ft[i + 1]
+            - y_ft[i]
+        )
+
+        if dx <= 0.0:
+            raise ValueError(
+                "Span stations must be strictly increasing"
+            )
+
+        total += (
+            0.5
+            * (
+                load_lbf_per_ft[i]
+                + load_lbf_per_ft[i + 1]
+            )
+            * dx
+        )
+
+    return total
