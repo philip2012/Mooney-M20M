@@ -22,6 +22,7 @@ from wing_structure import (
     M20M_TIP_INCIDENCE_RAD,
     M20M_TIP_TWIST_FROM_ROOT_RAD,
     mooney_m20m_geometric_twist_rad,
+    make_m20m_wing_flow_distribution,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -1455,6 +1456,164 @@ class TestMooneyWingGeometry(unittest.TestCase):
             outer,
             inner,
         )
+
+
+class TestMooneyWingFlowDistribution(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+    def test_zero_roll_distribution_is_symmetric(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        for left, right in zip(
+            flow.effective_alpha_rad,
+            reversed(flow.effective_alpha_rad),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_centerline_preserves_reference_alpha(self):
+        reference_alpha = 0.08
+
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=reference_alpha,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        center = len(flow.theta_rad) // 2
+
+        self.assertTrue(
+            math.isclose(
+                flow.effective_alpha_rad[center],
+                reference_alpha,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_outboard_sections_have_lower_geometric_incidence(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        center = len(flow.theta_rad) // 2
+
+        self.assertLess(
+            flow.effective_alpha_rad[-1],
+            flow.effective_alpha_rad[center],
+        )
+
+        self.assertLess(
+            flow.effective_alpha_rad[0],
+            flow.effective_alpha_rad[center],
+        )
+
+    def test_positive_roll_breaks_left_right_alpha_symmetry(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.5,
+            station_count=41,
+        )
+
+        center = len(flow.theta_rad) // 2
+
+        left = flow.effective_alpha_rad[
+            center - 8
+        ]
+
+        right = flow.effective_alpha_rad[
+            center + 8
+        ]
+
+        self.assertGreater(
+            right,
+            left,
+        )
+
+    def test_aeroelastic_twist_is_added_stationwise(self):
+        station_count = 41
+
+        baseline = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=station_count,
+        )
+
+        elastic_twist = tuple(
+            0.01
+            for _ in baseline.theta_rad
+        )
+
+        modified = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=station_count,
+            aeroelastic_twist_rad=elastic_twist,
+        )
+
+        for original, changed in zip(
+            baseline.effective_alpha_rad,
+            modified.effective_alpha_rad,
+        ):
+            self.assertTrue(
+                math.isclose(
+                    changed,
+                    original + 0.01,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_chord_distribution_is_symmetric(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        for left, right in zip(
+            flow.chord_ft,
+            reversed(flow.chord_ft),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
 
 
 if __name__ == "__main__":

@@ -1650,3 +1650,149 @@ def mooney_m20m_geometric_twist_rad(
         M20M_TIP_TWIST_FROM_ROOT_RAD
         * fraction
     )
+
+
+@dataclass(frozen=True)
+class M20MWingFlowDistribution:
+    theta_rad: tuple[float, ...]
+    signed_y_ft: tuple[float, ...]
+    chord_ft: tuple[float, ...]
+
+    geometric_twist_rad: tuple[float, ...]
+    aeroelastic_twist_rad: tuple[float, ...]
+    roll_delta_alpha_rad: tuple[float, ...]
+
+    effective_alpha_rad: tuple[float, ...]
+    local_speed_fps: tuple[float, ...]
+
+
+def make_m20m_wing_flow_distribution(
+    *,
+    planform: TrapezoidalPlanform,
+    reference_alpha_rad: float,
+    forward_speed_fps: float,
+    roll_rate_rad_s: float,
+    station_count: int,
+    aeroelastic_twist_rad: Sequence[float] | None = None,
+) -> M20MWingFlowDistribution:
+    """
+    Build the full-wing local-flow distribution for the M20M.
+
+    The supplied reference alpha is assumed to already include the
+    JSBSim wing-incidence convention used by the aircraft FDM.
+
+    Therefore only RELATIVE M20M geometric twist is added here.
+
+    This function combines:
+
+        planform chord
+        documented M20M geometric washout
+        rigid-body roll-induced local flow
+        optional aeroelastic twist
+
+    It deliberately does NOT choose:
+
+        airfoil lift-curve slopes
+        zero-lift angles
+        stall limits
+        flap/aileron effectiveness
+
+    Those are aerodynamic-model inputs and must come from defensible
+    data rather than being invented here.
+    """
+
+    scalar_values = (
+        reference_alpha_rad,
+        forward_speed_fps,
+        roll_rate_rad_s,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in scalar_values
+    ):
+        raise ValueError(
+            "M20M wing-flow inputs must be finite"
+        )
+
+    if forward_speed_fps <= 0.0:
+        raise ValueError(
+            "Forward airspeed must be positive"
+        )
+
+    theta, signed_y = make_lifting_line_collocation(
+        planform.wingspan_ft,
+        station_count,
+    )
+
+    if aeroelastic_twist_rad is None:
+        elastic_twist = tuple(
+            0.0
+            for _ in theta
+        )
+    else:
+        if len(aeroelastic_twist_rad) != len(theta):
+            raise ValueError(
+                "Aeroelastic twist distribution must match lifting-line stations"
+            )
+
+        elastic_twist = tuple(
+            float(value)
+            for value in aeroelastic_twist_rad
+        )
+
+        if not all(
+            math.isfinite(value)
+            for value in elastic_twist
+        ):
+            raise ValueError(
+                "Aeroelastic twist values must be finite"
+            )
+
+    chord = tuple(
+        linear_chord_ft(
+            planform,
+            abs(y),
+        )
+        for y in signed_y
+    )
+
+    geometric_twist = tuple(
+        mooney_m20m_geometric_twist_rad(
+            y,
+            planform.semi_span_ft,
+        )
+        for y in signed_y
+    )
+
+    flows = tuple(
+        local_section_flow(
+            reference_alpha_rad=reference_alpha_rad,
+            forward_speed_fps=forward_speed_fps,
+            roll_rate_rad_s=roll_rate_rad_s,
+            signed_y_ft=signed_y[i],
+            geometric_twist_rad=geometric_twist[i],
+            aeroelastic_twist_rad=elastic_twist[i],
+        )
+        for i in range(len(theta))
+    )
+
+    return M20MWingFlowDistribution(
+        theta_rad=theta,
+        signed_y_ft=signed_y,
+        chord_ft=chord,
+        geometric_twist_rad=geometric_twist,
+        aeroelastic_twist_rad=elastic_twist,
+        roll_delta_alpha_rad=tuple(
+            flow.roll_delta_alpha_rad
+            for flow in flows
+        ),
+        effective_alpha_rad=tuple(
+            flow.effective_alpha_rad
+            for flow in flows
+        ),
+        local_speed_fps=tuple(
+            flow.local_speed_fps
+            for flow in flows
+        ),
+    )
