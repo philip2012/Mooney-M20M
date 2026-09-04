@@ -1975,3 +1975,170 @@ def make_m20m_airfoil_distribution(
             for section in sections
         ),
     )
+
+
+@dataclass(frozen=True)
+class SectionFlowProperties:
+    chord_ft: float
+    speed_fps: float
+
+    dynamic_pressure_psf: float
+    reynolds_number: float
+
+
+@dataclass(frozen=True)
+class M20MLocalAeroStateDistribution:
+    signed_y_ft: tuple[float, ...]
+    chord_ft: tuple[float, ...]
+    local_speed_fps: tuple[float, ...]
+
+    dynamic_pressure_psf: tuple[float, ...]
+    reynolds_number: tuple[float, ...]
+
+
+def section_flow_properties(
+    *,
+    chord_ft: float,
+    speed_fps: float,
+    air_density_slug_ft3: float,
+    dynamic_viscosity_slug_ft_s: float,
+) -> SectionFlowProperties:
+    """
+    Calculate basic local aerodynamic flow properties.
+
+    Dynamic pressure:
+
+        q = 0.5 * rho * V^2
+
+    Reynolds number:
+
+        Re = rho * V * c / mu
+
+    Units:
+
+        chord_ft                    ft
+        speed_fps                   ft/s
+        air_density_slug_ft3        slug/ft^3
+        dynamic_viscosity_slug_ft_s slug/(ft*s)
+
+    giving:
+
+        dynamic_pressure_psf        lbf/ft^2
+        reynolds_number             dimensionless
+    """
+
+    values = (
+        chord_ft,
+        speed_fps,
+        air_density_slug_ft3,
+        dynamic_viscosity_slug_ft_s,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in values
+    ):
+        raise ValueError(
+            "Section flow inputs must all be finite"
+        )
+
+    if chord_ft <= 0.0:
+        raise ValueError(
+            "Chord must be positive"
+        )
+
+    if speed_fps < 0.0:
+        raise ValueError(
+            "Airspeed cannot be negative"
+        )
+
+    if air_density_slug_ft3 <= 0.0:
+        raise ValueError(
+            "Air density must be positive"
+        )
+
+    if dynamic_viscosity_slug_ft_s <= 0.0:
+        raise ValueError(
+            "Dynamic viscosity must be positive"
+        )
+
+    dynamic_pressure = (
+        0.5
+        * air_density_slug_ft3
+        * speed_fps ** 2
+    )
+
+    reynolds_number = (
+        air_density_slug_ft3
+        * speed_fps
+        * chord_ft
+        / dynamic_viscosity_slug_ft_s
+    )
+
+    return SectionFlowProperties(
+        chord_ft=chord_ft,
+        speed_fps=speed_fps,
+        dynamic_pressure_psf=dynamic_pressure,
+        reynolds_number=reynolds_number,
+    )
+
+
+def make_m20m_local_aero_state_distribution(
+    *,
+    flow_distribution: M20MWingFlowDistribution,
+    air_density_slug_ft3: float,
+    dynamic_viscosity_slug_ft_s: float,
+) -> M20MLocalAeroStateDistribution:
+    """
+    Calculate local qbar and Reynolds number for every M20M
+    lifting-line station.
+
+    This uses each station's actual local speed from the wing-flow
+    model and its local spanwise chord.
+
+    This function deliberately does not change the airfoil
+    coefficients as a function of Reynolds number. It only computes
+    the physical Reynolds state needed by a later validated
+    Reynolds-dependent aerodynamic model.
+    """
+
+    count = len(
+        flow_distribution.signed_y_ft
+    )
+
+    arrays = (
+        flow_distribution.chord_ft,
+        flow_distribution.local_speed_fps,
+    )
+
+    if any(
+        len(values) != count
+        for values in arrays
+    ):
+        raise ValueError(
+            "M20M wing-flow arrays must have equal length"
+        )
+
+    states = tuple(
+        section_flow_properties(
+            chord_ft=flow_distribution.chord_ft[i],
+            speed_fps=flow_distribution.local_speed_fps[i],
+            air_density_slug_ft3=air_density_slug_ft3,
+            dynamic_viscosity_slug_ft_s=dynamic_viscosity_slug_ft_s,
+        )
+        for i in range(count)
+    )
+
+    return M20MLocalAeroStateDistribution(
+        signed_y_ft=flow_distribution.signed_y_ft,
+        chord_ft=flow_distribution.chord_ft,
+        local_speed_fps=flow_distribution.local_speed_fps,
+        dynamic_pressure_psf=tuple(
+            state.dynamic_pressure_psf
+            for state in states
+        ),
+        reynolds_number=tuple(
+            state.reynolds_number
+            for state in states
+        ),
+    )

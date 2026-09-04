@@ -29,6 +29,8 @@ from wing_structure import (
     M20M_TIP_ZERO_LIFT_ALPHA_RAD,
     make_m20m_airfoil_distribution,
     mooney_m20m_section_linear_aerodynamics,
+    make_m20m_local_aero_state_distribution,
+    section_flow_properties,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -1828,6 +1830,210 @@ class TestMooneyAirfoilAerodynamics(unittest.TestCase):
                     abs_tol=1e-12,
                 )
             )
+
+
+class TestLocalAerodynamicState(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.rho = 0.002
+        self.mu = 4.0e-7
+
+    def test_dynamic_pressure_matches_definition(self):
+        state = section_flow_properties(
+            chord_ft=5.0,
+            speed_fps=200.0,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        expected = (
+            0.5
+            * self.rho
+            * 200.0 ** 2
+        )
+
+        self.assertTrue(
+            math.isclose(
+                state.dynamic_pressure_psf,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_reynolds_number_matches_definition(self):
+        state = section_flow_properties(
+            chord_ft=5.0,
+            speed_fps=200.0,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        expected = (
+            self.rho
+            * 200.0
+            * 5.0
+            / self.mu
+        )
+
+        self.assertTrue(
+            math.isclose(
+                state.reynolds_number,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_zero_speed_produces_zero_qbar_and_reynolds(self):
+        state = section_flow_properties(
+            chord_ft=5.0,
+            speed_fps=0.0,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        self.assertEqual(
+            state.dynamic_pressure_psf,
+            0.0,
+        )
+
+        self.assertEqual(
+            state.reynolds_number,
+            0.0,
+        )
+
+    def test_rejects_non_positive_density(self):
+        with self.assertRaises(ValueError):
+            section_flow_properties(
+                chord_ft=5.0,
+                speed_fps=200.0,
+                air_density_slug_ft3=0.0,
+                dynamic_viscosity_slug_ft_s=self.mu,
+            )
+
+    def test_rejects_non_positive_viscosity(self):
+        with self.assertRaises(ValueError):
+            section_flow_properties(
+                chord_ft=5.0,
+                speed_fps=200.0,
+                air_density_slug_ft3=self.rho,
+                dynamic_viscosity_slug_ft_s=0.0,
+            )
+
+    def test_zero_roll_aero_state_is_symmetric(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        state = make_m20m_local_aero_state_distribution(
+            flow_distribution=flow,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        for left, right in zip(
+            state.dynamic_pressure_psf,
+            reversed(
+                state.dynamic_pressure_psf
+            ),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+        for left, right in zip(
+            state.reynolds_number,
+            reversed(
+                state.reynolds_number
+            ),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_root_reynolds_exceeds_outboard_reynolds_at_zero_roll(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        state = make_m20m_local_aero_state_distribution(
+            flow_distribution=flow,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        center = (
+            len(
+                state.reynolds_number
+            )
+            // 2
+        )
+
+        self.assertGreater(
+            state.reynolds_number[center],
+            state.reynolds_number[-1],
+        )
+
+        self.assertGreater(
+            state.reynolds_number[center],
+            state.reynolds_number[0],
+        )
+
+    def test_roll_local_speed_changes_qbar_outboard(self):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.7,
+            station_count=41,
+        )
+
+        state = make_m20m_local_aero_state_distribution(
+            flow_distribution=flow,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        center = (
+            len(
+                state.dynamic_pressure_psf
+            )
+            // 2
+        )
+
+        self.assertGreater(
+            state.dynamic_pressure_psf[-1],
+            state.dynamic_pressure_psf[center],
+        )
+
+        self.assertGreater(
+            state.dynamic_pressure_psf[0],
+            state.dynamic_pressure_psf[center],
+        )
 
 
 if __name__ == "__main__":
