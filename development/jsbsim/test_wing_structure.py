@@ -17,6 +17,11 @@ from wing_structure import (
     solve_lifting_line,
     extract_half_wing_load,
     solve_one_way_aero_structural_bending,
+    M20M_DIHEDRAL_RAD,
+    M20M_ROOT_INCIDENCE_RAD,
+    M20M_TIP_INCIDENCE_RAD,
+    M20M_TIP_TWIST_FROM_ROOT_RAD,
+    mooney_m20m_geometric_twist_rad,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -1350,6 +1355,105 @@ class TestAeroStructuralCoupling(unittest.TestCase):
             right.lift_lbf_per_ft[-1],
             0.0,
             places=12,
+        )
+
+
+class TestMooneyWingGeometry(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.semi_span = (
+            self.planform.semi_span_ft
+        )
+
+    def test_root_relative_twist_is_zero(self):
+        twist = mooney_m20m_geometric_twist_rad(
+            0.0,
+            self.semi_span,
+        )
+
+        self.assertAlmostEqual(
+            twist,
+            0.0,
+            places=12,
+        )
+
+    def test_tip_relative_twist_is_minus_one_point_five_deg(self):
+        twist = mooney_m20m_geometric_twist_rad(
+            self.semi_span,
+            self.semi_span,
+        )
+
+        expected = math.radians(
+            -1.5
+        )
+
+        self.assertTrue(
+            math.isclose(
+                twist,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_left_and_right_twist_are_symmetric(self):
+        left = mooney_m20m_geometric_twist_rad(
+            -10.0,
+            self.semi_span,
+        )
+
+        right = mooney_m20m_geometric_twist_rad(
+            10.0,
+            self.semi_span,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                left,
+                right,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_root_incidence_plus_tip_twist_reconstructs_tip_incidence(self):
+        reconstructed = (
+            M20M_ROOT_INCIDENCE_RAD
+            + M20M_TIP_TWIST_FROM_ROOT_RAD
+        )
+
+        self.assertTrue(
+            math.isclose(
+                reconstructed,
+                M20M_TIP_INCIDENCE_RAD,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_twist_increases_in_magnitude_outboard(self):
+        inner = abs(
+            mooney_m20m_geometric_twist_rad(
+                5.0,
+                self.semi_span,
+            )
+        )
+
+        outer = abs(
+            mooney_m20m_geometric_twist_rad(
+                15.0,
+                self.semi_span,
+            )
+        )
+
+        self.assertGreater(
+            outer,
+            inner,
         )
 
 

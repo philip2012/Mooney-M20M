@@ -1567,3 +1567,86 @@ def solve_one_way_aero_structural_bending(
         left_bending=left_bending,
         right_bending=right_bending,
     )
+
+
+# Mooney M20M wing geometry.
+#
+# Published/reference geometry:
+#
+#   root incidence: 2.5 deg
+#   tip incidence:  1.0 deg
+#   dihedral:       5.5 deg
+#
+# JSBSim's current metrics already specify 2.5 deg wing incidence,
+# so structural/aeroelastic calculations should use RELATIVE twist
+# from the wing root rather than adding absolute incidence again.
+
+M20M_ROOT_INCIDENCE_RAD = math.radians(2.5)
+M20M_TIP_INCIDENCE_RAD = math.radians(1.0)
+
+M20M_TIP_TWIST_FROM_ROOT_RAD = (
+    M20M_TIP_INCIDENCE_RAD
+    - M20M_ROOT_INCIDENCE_RAD
+)
+
+M20M_DIHEDRAL_RAD = math.radians(5.5)
+
+
+def mooney_m20m_geometric_twist_rad(
+    signed_y_ft: float,
+    semi_span_ft: float,
+) -> float:
+    """
+    Return M20M geometric wing twist relative to the wing root.
+
+    Convention:
+
+        root = 0 rad
+        tip  = -1.5 deg
+
+    Negative twist therefore represents washout.
+
+    The published endpoint incidences are currently interpolated
+    linearly along the span.
+
+    This linear distribution is an explicit modeling assumption,
+    not a claim that Mooney manufactured the twist distribution as
+    perfectly linear between every wing station.
+    """
+
+    values = (
+        signed_y_ft,
+        semi_span_ft,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in values
+    ):
+        raise ValueError(
+            "M20M twist inputs must be finite"
+        )
+
+    if semi_span_ft <= 0.0:
+        raise ValueError(
+            "Semi-span must be positive"
+        )
+
+    distance = abs(
+        signed_y_ft
+    )
+
+    if distance > semi_span_ft + 1e-12:
+        raise ValueError(
+            "Spanwise position lies outside the wing"
+        )
+
+    fraction = min(
+        distance / semi_span_ft,
+        1.0,
+    )
+
+    return (
+        M20M_TIP_TWIST_FROM_ROOT_RAD
+        * fraction
+    )
