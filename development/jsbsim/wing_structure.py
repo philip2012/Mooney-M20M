@@ -665,3 +665,113 @@ def integrate_distributed_load(
         )
 
     return total
+
+
+@dataclass(frozen=True)
+class LocalSectionFlow:
+    signed_y_ft: float
+
+    forward_speed_fps: float
+    roll_normal_speed_fps: float
+    local_speed_fps: float
+
+    reference_alpha_rad: float
+    geometric_twist_rad: float
+    aeroelastic_twist_rad: float
+    roll_delta_alpha_rad: float
+
+    effective_alpha_rad: float
+
+
+def local_section_flow(
+    *,
+    reference_alpha_rad: float,
+    forward_speed_fps: float,
+    roll_rate_rad_s: float,
+    signed_y_ft: float,
+    geometric_twist_rad: float = 0.0,
+    aeroelastic_twist_rad: float = 0.0,
+) -> LocalSectionFlow:
+    """
+    Calculate local section airflow caused by rigid-body roll.
+
+    Coordinate convention used by this structural model:
+
+        signed_y_ft < 0 : left wing
+        signed_y_ft = 0 : aircraft centerline
+        signed_y_ft > 0 : right wing
+
+    Positive roll rate is defined as the right wing moving downward.
+
+    Therefore the rigid-body vertical velocity of a span station is:
+
+        w_roll = p * y
+
+    and its corresponding local effective-angle contribution is:
+
+        delta_alpha_roll = atan2(w_roll, V)
+
+    Positive geometric/aeroelastic twist is defined here as increasing
+    local aerodynamic incidence and therefore increasing effective AoA.
+
+    This function intentionally models only roll-induced local flow and
+    twist bookkeeping. Gusts, induced downwash, sideslip, yaw rate,
+    structural dynamics, and aerodynamic feedback are separate later
+    additions.
+    """
+
+    values = (
+        reference_alpha_rad,
+        forward_speed_fps,
+        roll_rate_rad_s,
+        signed_y_ft,
+        geometric_twist_rad,
+        aeroelastic_twist_rad,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in values
+    ):
+        raise ValueError(
+            "Local-flow inputs must all be finite"
+        )
+
+    if forward_speed_fps <= 0.0:
+        raise ValueError(
+            "Forward airspeed must be positive"
+        )
+
+    roll_normal_speed_fps = (
+        roll_rate_rad_s
+        * signed_y_ft
+    )
+
+    roll_delta_alpha_rad = math.atan2(
+        roll_normal_speed_fps,
+        forward_speed_fps,
+    )
+
+    local_speed_fps = math.hypot(
+        forward_speed_fps,
+        roll_normal_speed_fps,
+    )
+
+    effective_alpha_rad = (
+        reference_alpha_rad
+        + geometric_twist_rad
+        + aeroelastic_twist_rad
+        + roll_delta_alpha_rad
+    )
+
+    return LocalSectionFlow(
+        signed_y_ft=signed_y_ft,
+        forward_speed_fps=forward_speed_fps,
+        roll_normal_speed_fps=roll_normal_speed_fps,
+        local_speed_fps=local_speed_fps,
+        reference_alpha_rad=reference_alpha_rad,
+        geometric_twist_rad=geometric_twist_rad,
+        aeroelastic_twist_rad=aeroelastic_twist_rad,
+        roll_delta_alpha_rad=roll_delta_alpha_rad,
+        effective_alpha_rad=effective_alpha_rad,
+    )

@@ -7,6 +7,7 @@ from wing_structure import (
     derive_trapezoidal_planform,
     integrate_distributed_load,
     linear_chord_ft,
+    local_section_flow,
     make_trapezoidal_strips,
     make_uniform_span_grid,
     sectional_lift_lbf_per_ft,
@@ -553,6 +554,148 @@ class TestSectionalAerodynamics(unittest.TestCase):
                     rel_tol=1e-12,
                     abs_tol=1e-12,
                 )
+            )
+
+
+class TestLocalSectionFlow(unittest.TestCase):
+    def test_zero_roll_preserves_reference_alpha(self):
+        result = local_section_flow(
+            reference_alpha_rad=0.10,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            signed_y_ft=10.0,
+        )
+
+        self.assertAlmostEqual(
+            result.roll_delta_alpha_rad,
+            0.0,
+            places=12,
+        )
+
+        self.assertAlmostEqual(
+            result.effective_alpha_rad,
+            0.10,
+            places=12,
+        )
+
+    def test_centerline_has_no_roll_induced_alpha(self):
+        result = local_section_flow(
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=1.0,
+            signed_y_ft=0.0,
+        )
+
+        self.assertAlmostEqual(
+            result.roll_delta_alpha_rad,
+            0.0,
+            places=12,
+        )
+
+    def test_roll_produces_opposite_left_right_alpha(self):
+        left = local_section_flow(
+            reference_alpha_rad=0.0,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.5,
+            signed_y_ft=-12.0,
+        )
+
+        right = local_section_flow(
+            reference_alpha_rad=0.0,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.5,
+            signed_y_ft=12.0,
+        )
+
+        self.assertLess(
+            left.roll_delta_alpha_rad,
+            0.0,
+        )
+
+        self.assertGreater(
+            right.roll_delta_alpha_rad,
+            0.0,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                left.roll_delta_alpha_rad,
+                -right.roll_delta_alpha_rad,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_roll_delta_matches_exact_geometry(self):
+        result = local_section_flow(
+            reference_alpha_rad=0.0,
+            forward_speed_fps=200.0,
+            roll_rate_rad_s=0.4,
+            signed_y_ft=10.0,
+        )
+
+        expected = math.atan2(
+            0.4 * 10.0,
+            200.0,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.roll_delta_alpha_rad,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_local_speed_includes_roll_velocity(self):
+        result = local_section_flow(
+            reference_alpha_rad=0.0,
+            forward_speed_fps=200.0,
+            roll_rate_rad_s=0.5,
+            signed_y_ft=10.0,
+        )
+
+        expected = math.hypot(
+            200.0,
+            5.0,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.local_speed_fps,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_twist_terms_add_to_effective_alpha(self):
+        result = local_section_flow(
+            reference_alpha_rad=0.10,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            signed_y_ft=10.0,
+            geometric_twist_rad=-0.02,
+            aeroelastic_twist_rad=0.01,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.effective_alpha_rad,
+                0.09,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_rejects_zero_forward_speed(self):
+        with self.assertRaises(ValueError):
+            local_section_flow(
+                reference_alpha_rad=0.0,
+                forward_speed_fps=0.0,
+                roll_rate_rad_s=0.5,
+                signed_y_ft=10.0,
             )
 
 
