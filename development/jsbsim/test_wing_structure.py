@@ -38,6 +38,10 @@ from wing_structure import (
     normalize_mass_distribution,
     pounds_mass_to_slugs,
     solve_distributed_inertial_load,
+    M20M_FUEL_CAPACITY_PER_WING_LBM,
+    M20M_FUEL_DENSITY_LB_PER_GAL,
+    M20M_USABLE_FUEL_PER_WING_GAL,
+    make_m20m_wing_fuel_distribution,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -2664,6 +2668,218 @@ class TestDistributedInertialLoading(unittest.TestCase):
             heavy.total_net_force_lbf,
             light.total_net_force_lbf,
         )
+
+
+class TestMooneyWingFuelDistribution(unittest.TestCase):
+    def setUp(self):
+        self.y = make_uniform_span_grid(
+            10.0,
+            101,
+        )
+
+        # Synthetic tank shape used ONLY for validating distribution
+        # bookkeeping. These are NOT claimed M20M tank boundaries.
+        self.shape = tuple(
+            1.0
+            if 2.0 <= y <= 7.0
+            else 0.0
+            for y in self.y
+        )
+
+    def integrated_lbm(
+        self,
+        distribution,
+    ):
+        mass_slugs = integrate_distributed_load(
+            self.y,
+            distribution,
+        )
+
+        return (
+            mass_slugs
+            * STANDARD_GRAVITY_FPS2
+        )
+
+    def test_capacity_matches_current_m20m_fdm(self):
+        expected = (
+            M20M_USABLE_FUEL_PER_WING_GAL
+            * M20M_FUEL_DENSITY_LB_PER_GAL
+        )
+
+        self.assertTrue(
+            math.isclose(
+                M20M_FUEL_CAPACITY_PER_WING_LBM,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                M20M_FUEL_CAPACITY_PER_WING_LBM,
+                267.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_full_left_tank_reconstructs_267_lb(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.shape,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=0.0,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                self.integrated_lbm(
+                    fuel.left_mass_slugs_per_ft
+                ),
+                267.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_half_right_tank_reconstructs_mass(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.shape,
+            left_fuel_lbm=0.0,
+            right_fuel_lbm=133.5,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                self.integrated_lbm(
+                    fuel.right_mass_slugs_per_ft
+                ),
+                133.5,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_empty_tank_produces_zero_distribution(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.shape,
+            left_fuel_lbm=0.0,
+            right_fuel_lbm=100.0,
+        )
+
+        self.assertTrue(
+            all(
+                value == 0.0
+                for value in fuel.left_mass_slugs_per_ft
+            )
+        )
+
+    def test_left_and_right_quantities_are_independent(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.shape,
+            left_fuel_lbm=200.0,
+            right_fuel_lbm=100.0,
+        )
+
+        left = self.integrated_lbm(
+            fuel.left_mass_slugs_per_ft
+        )
+
+        right = self.integrated_lbm(
+            fuel.right_mass_slugs_per_ft
+        )
+
+        self.assertTrue(
+            math.isclose(
+                left,
+                200.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                right,
+                100.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+        self.assertGreater(
+            left,
+            right,
+        )
+
+    def test_equal_quantities_produce_equal_distributions(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.shape,
+            left_fuel_lbm=180.0,
+            right_fuel_lbm=180.0,
+        )
+
+        for left, right in zip(
+            fuel.left_mass_slugs_per_ft,
+            fuel.right_mass_slugs_per_ft,
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_fill_fraction_is_calculated_independently(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.shape,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=133.5,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                fuel.left_fill_fraction,
+                1.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                fuel.right_fill_fraction,
+                0.5,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_rejects_over_capacity_fuel(self):
+        with self.assertRaises(ValueError):
+            make_m20m_wing_fuel_distribution(
+                y_ft=self.y,
+                relative_tank_shape=self.shape,
+                left_fuel_lbm=268.0,
+                right_fuel_lbm=0.0,
+            )
+
+    def test_rejects_negative_fuel(self):
+        with self.assertRaises(ValueError):
+            make_m20m_wing_fuel_distribution(
+                y_ft=self.y,
+                relative_tank_shape=self.shape,
+                left_fuel_lbm=-1.0,
+                right_fuel_lbm=0.0,
+            )
 
 
 if __name__ == "__main__":

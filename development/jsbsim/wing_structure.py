@@ -2701,3 +2701,180 @@ def solve_distributed_inertial_load(
         inertial_load_lbf_per_ft=inertial_load,
         net_load_lbf_per_ft=net_load,
     )
+
+
+# Current production M20M fuel model:
+#
+#   44.5 US gal usable per wing
+#   6.0 lb/US gal
+#   267 lb per wing
+#
+# The SPANWISE SHAPE of the tank is deliberately not defined here yet.
+# That requires defensible tank/rib geometry.
+
+M20M_USABLE_FUEL_PER_WING_GAL = 44.5
+M20M_FUEL_DENSITY_LB_PER_GAL = 6.0
+
+M20M_FUEL_CAPACITY_PER_WING_LBM = (
+    M20M_USABLE_FUEL_PER_WING_GAL
+    * M20M_FUEL_DENSITY_LB_PER_GAL
+)
+
+
+@dataclass(frozen=True)
+class M20MWingFuelDistribution:
+    y_ft: tuple[float, ...]
+
+    left_fuel_lbm: float
+    right_fuel_lbm: float
+
+    left_fill_fraction: float
+    right_fill_fraction: float
+
+    left_mass_slugs_per_ft: tuple[float, ...]
+    right_mass_slugs_per_ft: tuple[float, ...]
+
+    @property
+    def total_fuel_lbm(self) -> float:
+        return (
+            self.left_fuel_lbm
+            + self.right_fuel_lbm
+        )
+
+
+def make_m20m_wing_fuel_distribution(
+    *,
+    y_ft: Sequence[float],
+    relative_tank_shape: Sequence[float],
+    left_fuel_lbm: float,
+    right_fuel_lbm: float,
+) -> M20MWingFuelDistribution:
+    """
+    Build independent left/right M20M distributed fuel masses.
+
+    `relative_tank_shape` describes only the SHAPE of the fuel
+    distribution on one root-to-tip half-wing grid.
+
+    It is deliberately supplied by the caller because exact M20M
+    tank span boundaries have not yet been established strongly
+    enough to hard-code them.
+
+    The shape is normalized independently for each wing so that:
+
+        integral m'_fuel,L dy = left fuel mass
+
+        integral m'_fuel,R dy = right fuel mass
+
+    This allows FlightGear/JSBSim tank quantities to eventually feed
+    the structural model directly without changing the structural
+    distribution architecture.
+    """
+
+    count = len(y_ft)
+
+    if count < 2:
+        raise ValueError(
+            "At least two fuel-distribution stations are required"
+        )
+
+    if len(relative_tank_shape) != count:
+        raise ValueError(
+            "Fuel shape length must match span grid"
+        )
+
+    quantities = (
+        left_fuel_lbm,
+        right_fuel_lbm,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in quantities
+    ):
+        raise ValueError(
+            "Fuel quantities must be finite"
+        )
+
+    if any(
+        value < 0.0
+        for value in quantities
+    ):
+        raise ValueError(
+            "Fuel quantity cannot be negative"
+        )
+
+    if any(
+        value > M20M_FUEL_CAPACITY_PER_WING_LBM + 1e-12
+        for value in quantities
+    ):
+        raise ValueError(
+            "Fuel quantity exceeds M20M per-wing capacity"
+        )
+
+    # Validate span grid and shape before normalization.
+    integrate_distributed_load(
+        y_ft,
+        tuple(
+            0.0
+            for _ in y_ft
+        ),
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in relative_tank_shape
+    ):
+        raise ValueError(
+            "Fuel-distribution shape must be finite"
+        )
+
+    if any(
+        value < 0.0
+        for value in relative_tank_shape
+    ):
+        raise ValueError(
+            "Fuel-distribution shape cannot be negative"
+        )
+
+    left_mass_slugs = pounds_mass_to_slugs(
+        left_fuel_lbm
+    )
+
+    right_mass_slugs = pounds_mass_to_slugs(
+        right_fuel_lbm
+    )
+
+    left_distribution = normalize_mass_distribution(
+        y_ft,
+        relative_tank_shape,
+        left_mass_slugs,
+    )
+
+    right_distribution = normalize_mass_distribution(
+        y_ft,
+        relative_tank_shape,
+        right_mass_slugs,
+    )
+
+    return M20MWingFuelDistribution(
+        y_ft=tuple(
+            float(value)
+            for value in y_ft
+        ),
+        left_fuel_lbm=float(
+            left_fuel_lbm
+        ),
+        right_fuel_lbm=float(
+            right_fuel_lbm
+        ),
+        left_fill_fraction=(
+            left_fuel_lbm
+            / M20M_FUEL_CAPACITY_PER_WING_LBM
+        ),
+        right_fill_fraction=(
+            right_fuel_lbm
+            / M20M_FUEL_CAPACITY_PER_WING_LBM
+        ),
+        left_mass_slugs_per_ft=left_distribution,
+        right_mass_slugs_per_ft=right_distribution,
+    )
