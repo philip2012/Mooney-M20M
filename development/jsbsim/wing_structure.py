@@ -1796,3 +1796,182 @@ def make_m20m_wing_flow_distribution(
             for flow in flows
         ),
     )
+
+
+# M20M clean-section aerodynamic reference data.
+#
+# Airfoils:
+#
+#   root: NACA 63(2)-215
+#   tip:  NACA 64(1)-412
+#
+# Reference condition:
+#
+#   Reynolds number = 9.0e6
+#
+# These values represent clean-section linear-region aerodynamic
+# data. They are NOT yet Reynolds-varying and must not be interpreted
+# as stall/nonlinear airfoil models.
+
+M20M_AIRFOIL_REFERENCE_REYNOLDS = 9_000_000.0
+
+M20M_ROOT_LIFT_SLOPE_PER_DEG = 0.120
+M20M_TIP_LIFT_SLOPE_PER_DEG = 0.112
+
+M20M_ROOT_LIFT_SLOPE_PER_RAD = (
+    M20M_ROOT_LIFT_SLOPE_PER_DEG
+    * 180.0
+    / math.pi
+)
+
+M20M_TIP_LIFT_SLOPE_PER_RAD = (
+    M20M_TIP_LIFT_SLOPE_PER_DEG
+    * 180.0
+    / math.pi
+)
+
+M20M_ROOT_ZERO_LIFT_ALPHA_RAD = math.radians(
+    -1.2
+)
+
+M20M_TIP_ZERO_LIFT_ALPHA_RAD = math.radians(
+    -2.8
+)
+
+
+@dataclass(frozen=True)
+class M20MSectionLinearAerodynamics:
+    signed_y_ft: float
+    span_fraction: float
+
+    lift_curve_slope_per_rad: float
+    alpha_zero_lift_rad: float
+
+
+@dataclass(frozen=True)
+class M20MAirfoilDistribution:
+    signed_y_ft: tuple[float, ...]
+
+    lift_curve_slope_per_rad: tuple[float, ...]
+    alpha_zero_lift_rad: tuple[float, ...]
+
+
+def mooney_m20m_section_linear_aerodynamics(
+    signed_y_ft: float,
+    semi_span_ft: float,
+) -> M20MSectionLinearAerodynamics:
+    """
+    Return the clean linear aerodynamic parameters for one M20M
+    spanwise section.
+
+    The known root and tip airfoils are:
+
+        root: NACA 63(2)-215
+        tip:  NACA 64(1)-412
+
+    The reference data used here are for Re = 9e6.
+
+    Since the aircraft documentation describes the airfoil as varying
+    from the root section to the tip section, the aerodynamic
+    parameters are linearly interpolated spanwise.
+
+    That interpolation is an explicit reduced-order modeling
+    assumption. It does not imply that the actual manufactured wing
+    uses a mathematically linear family of intermediate airfoils.
+    """
+
+    if not math.isfinite(
+        signed_y_ft
+    ):
+        raise ValueError(
+            "Spanwise position must be finite"
+        )
+
+    if not math.isfinite(
+        semi_span_ft
+    ):
+        raise ValueError(
+            "Semi-span must be finite"
+        )
+
+    if semi_span_ft <= 0.0:
+        raise ValueError(
+            "Semi-span must be positive"
+        )
+
+    distance = abs(
+        signed_y_ft
+    )
+
+    if distance > semi_span_ft + 1e-12:
+        raise ValueError(
+            "Spanwise position lies outside the wing"
+        )
+
+    span_fraction = min(
+        distance / semi_span_ft,
+        1.0,
+    )
+
+    lift_curve_slope = (
+        M20M_ROOT_LIFT_SLOPE_PER_RAD
+        + span_fraction
+        * (
+            M20M_TIP_LIFT_SLOPE_PER_RAD
+            - M20M_ROOT_LIFT_SLOPE_PER_RAD
+        )
+    )
+
+    alpha_zero_lift = (
+        M20M_ROOT_ZERO_LIFT_ALPHA_RAD
+        + span_fraction
+        * (
+            M20M_TIP_ZERO_LIFT_ALPHA_RAD
+            - M20M_ROOT_ZERO_LIFT_ALPHA_RAD
+        )
+    )
+
+    return M20MSectionLinearAerodynamics(
+        signed_y_ft=signed_y_ft,
+        span_fraction=span_fraction,
+        lift_curve_slope_per_rad=lift_curve_slope,
+        alpha_zero_lift_rad=alpha_zero_lift,
+    )
+
+
+def make_m20m_airfoil_distribution(
+    signed_y_ft: Sequence[float],
+    semi_span_ft: float,
+) -> M20MAirfoilDistribution:
+    """
+    Build spanwise M20M linear airfoil parameters suitable for the
+    lifting-line solver.
+    """
+
+    if len(signed_y_ft) < 3:
+        raise ValueError(
+            "At least three span stations are required"
+        )
+
+    sections = tuple(
+        mooney_m20m_section_linear_aerodynamics(
+            y,
+            semi_span_ft,
+        )
+        for y in signed_y_ft
+    )
+
+    return M20MAirfoilDistribution(
+        signed_y_ft=tuple(
+            float(y)
+            for y in signed_y_ft
+        ),
+        lift_curve_slope_per_rad=tuple(
+            section.lift_curve_slope_per_rad
+            for section in sections
+        ),
+        alpha_zero_lift_rad=tuple(
+            section.alpha_zero_lift_rad
+            for section in sections
+        ),
+    )

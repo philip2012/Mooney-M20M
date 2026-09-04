@@ -23,6 +23,12 @@ from wing_structure import (
     M20M_TIP_TWIST_FROM_ROOT_RAD,
     mooney_m20m_geometric_twist_rad,
     make_m20m_wing_flow_distribution,
+    M20M_ROOT_LIFT_SLOPE_PER_RAD,
+    M20M_ROOT_ZERO_LIFT_ALPHA_RAD,
+    M20M_TIP_LIFT_SLOPE_PER_RAD,
+    M20M_TIP_ZERO_LIFT_ALPHA_RAD,
+    make_m20m_airfoil_distribution,
+    mooney_m20m_section_linear_aerodynamics,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -1605,6 +1611,214 @@ class TestMooneyWingFlowDistribution(unittest.TestCase):
         for left, right in zip(
             flow.chord_ft,
             reversed(flow.chord_ft),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+
+class TestMooneyAirfoilAerodynamics(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.semi_span = (
+            self.planform.semi_span_ft
+        )
+
+    def test_root_matches_root_airfoil_data(self):
+        section = mooney_m20m_section_linear_aerodynamics(
+            0.0,
+            self.semi_span,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                section.lift_curve_slope_per_rad,
+                M20M_ROOT_LIFT_SLOPE_PER_RAD,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                section.alpha_zero_lift_rad,
+                M20M_ROOT_ZERO_LIFT_ALPHA_RAD,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_tip_matches_tip_airfoil_data(self):
+        section = mooney_m20m_section_linear_aerodynamics(
+            self.semi_span,
+            self.semi_span,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                section.lift_curve_slope_per_rad,
+                M20M_TIP_LIFT_SLOPE_PER_RAD,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                section.alpha_zero_lift_rad,
+                M20M_TIP_ZERO_LIFT_ALPHA_RAD,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_left_and_right_airfoil_parameters_are_symmetric(self):
+        left = mooney_m20m_section_linear_aerodynamics(
+            -10.0,
+            self.semi_span,
+        )
+
+        right = mooney_m20m_section_linear_aerodynamics(
+            10.0,
+            self.semi_span,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                left.lift_curve_slope_per_rad,
+                right.lift_curve_slope_per_rad,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                left.alpha_zero_lift_rad,
+                right.alpha_zero_lift_rad,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_lift_curve_slope_transitions_root_to_tip(self):
+        root = mooney_m20m_section_linear_aerodynamics(
+            0.0,
+            self.semi_span,
+        )
+
+        middle = mooney_m20m_section_linear_aerodynamics(
+            0.5 * self.semi_span,
+            self.semi_span,
+        )
+
+        tip = mooney_m20m_section_linear_aerodynamics(
+            self.semi_span,
+            self.semi_span,
+        )
+
+        self.assertGreater(
+            root.lift_curve_slope_per_rad,
+            middle.lift_curve_slope_per_rad,
+        )
+
+        self.assertGreater(
+            middle.lift_curve_slope_per_rad,
+            tip.lift_curve_slope_per_rad,
+        )
+
+    def test_zero_lift_angle_becomes_more_negative_outboard(self):
+        root = mooney_m20m_section_linear_aerodynamics(
+            0.0,
+            self.semi_span,
+        )
+
+        middle = mooney_m20m_section_linear_aerodynamics(
+            0.5 * self.semi_span,
+            self.semi_span,
+        )
+
+        tip = mooney_m20m_section_linear_aerodynamics(
+            self.semi_span,
+            self.semi_span,
+        )
+
+        self.assertGreater(
+            root.alpha_zero_lift_rad,
+            middle.alpha_zero_lift_rad,
+        )
+
+        self.assertGreater(
+            middle.alpha_zero_lift_rad,
+            tip.alpha_zero_lift_rad,
+        )
+
+    def test_distribution_matches_station_count(self):
+        _, signed_y = make_lifting_line_collocation(
+            MOONEY_WINGSPAN_FT,
+            41,
+        )
+
+        distribution = make_m20m_airfoil_distribution(
+            signed_y,
+            self.semi_span,
+        )
+
+        self.assertEqual(
+            len(
+                distribution.lift_curve_slope_per_rad
+            ),
+            41,
+        )
+
+        self.assertEqual(
+            len(
+                distribution.alpha_zero_lift_rad
+            ),
+            41,
+        )
+
+    def test_distribution_is_symmetric(self):
+        _, signed_y = make_lifting_line_collocation(
+            MOONEY_WINGSPAN_FT,
+            41,
+        )
+
+        distribution = make_m20m_airfoil_distribution(
+            signed_y,
+            self.semi_span,
+        )
+
+        for left, right in zip(
+            distribution.lift_curve_slope_per_rad,
+            reversed(
+                distribution.lift_curve_slope_per_rad
+            ),
+        ):
+            self.assertTrue(
+                math.isclose(
+                    left,
+                    right,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+        for left, right in zip(
+            distribution.alpha_zero_lift_rad,
+            reversed(
+                distribution.alpha_zero_lift_rad
+            ),
         ):
             self.assertTrue(
                 math.isclose(
