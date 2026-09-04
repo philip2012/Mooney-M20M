@@ -2142,3 +2142,294 @@ def make_m20m_local_aero_state_distribution(
             for state in states
         ),
     )
+
+
+def extract_half_wing_local_q_load(
+    lifting_line: LiftingLineSolution,
+    local_aero_state: M20MLocalAeroStateDistribution,
+    *,
+    side: str,
+    semi_span_ft: float,
+    tip_chord_ft: float,
+) -> HalfWingAerodynamicLoad:
+    """
+    Convert a full-wing lifting-line solution into a structural
+    half-wing load using stationwise dynamic pressure.
+
+        L'(y) = q(y) * c(y) * Cl(y)
+
+    Unlike extract_half_wing_load(), this function does not assume
+    one scalar qbar for the entire wing.
+
+    The physical tip is appended with zero lift because Prandtl
+    lifting-line enforces zero circulation at the tip.
+    """
+
+    if side not in (
+        "left",
+        "right",
+    ):
+        raise ValueError(
+            "Wing side must be 'left' or 'right'"
+        )
+
+    if not math.isfinite(semi_span_ft):
+        raise ValueError(
+            "Semi-span must be finite"
+        )
+
+    if not math.isfinite(tip_chord_ft):
+        raise ValueError(
+            "Tip chord must be finite"
+        )
+
+    if semi_span_ft <= 0.0:
+        raise ValueError(
+            "Semi-span must be positive"
+        )
+
+    if tip_chord_ft <= 0.0:
+        raise ValueError(
+            "Tip chord must be positive"
+        )
+
+    count = len(
+        lifting_line.signed_y_ft
+    )
+
+    arrays = (
+        lifting_line.chord_ft,
+        lifting_line.section_cl,
+        local_aero_state.signed_y_ft,
+        local_aero_state.chord_ft,
+        local_aero_state.dynamic_pressure_psf,
+    )
+
+    if any(
+        len(values) != count
+        for values in arrays
+    ):
+        raise ValueError(
+            "Lifting-line and local aerodynamic arrays must have equal length"
+        )
+
+    for i in range(count):
+        if not math.isclose(
+            lifting_line.signed_y_ft[i],
+            local_aero_state.signed_y_ft[i],
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "Lifting-line and aerodynamic-state span grids do not match"
+            )
+
+        if not math.isclose(
+            lifting_line.chord_ft[i],
+            local_aero_state.chord_ft[i],
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "Lifting-line and aerodynamic-state chord distributions do not match"
+            )
+
+        qbar = (
+            local_aero_state.dynamic_pressure_psf[i]
+        )
+
+        if not math.isfinite(qbar):
+            raise ValueError(
+                "Dynamic pressure values must be finite"
+            )
+
+        if qbar < 0.0:
+            raise ValueError(
+                "Dynamic pressure cannot be negative"
+            )
+
+    stations = []
+
+    for i in range(count):
+        signed_y = (
+            lifting_line.signed_y_ft[i]
+        )
+
+        if side == "right":
+            if signed_y < -1e-12:
+                continue
+
+            structural_y = signed_y
+
+        else:
+            if signed_y > 1e-12:
+                continue
+
+            structural_y = -signed_y
+
+        chord = (
+            lifting_line.chord_ft[i]
+        )
+
+        section_cl = (
+            lifting_line.section_cl[i]
+        )
+
+        qbar = (
+            local_aero_state.dynamic_pressure_psf[i]
+        )
+
+        lift_lbf_per_ft = (
+            qbar
+            * chord
+            * section_cl
+        )
+
+        stations.append(
+            (
+                structural_y,
+                chord,
+                section_cl,
+                lift_lbf_per_ft,
+            )
+        )
+
+    stations.sort(
+        key=lambda row: row[0]
+    )
+
+    if len(stations) < 2:
+        raise ValueError(
+            "Not enough half-wing aerodynamic stations"
+        )
+
+    if abs(stations[0][0]) > 1e-10:
+        raise ValueError(
+            "Aerodynamic grid must contain a centerline station"
+        )
+
+    if stations[-1][0] >= semi_span_ft:
+        raise ValueError(
+            "Aerodynamic collocation station lies at or beyond tip"
+        )
+
+    # Explicit physical tip:
+    #
+    #     Gamma = 0
+    #     L'    = 0
+    stations.append(
+        (
+            semi_span_ft,
+            tip_chord_ft,
+            0.0,
+            0.0,
+        )
+    )
+
+    y = tuple(
+        row[0]
+        for row in stations
+    )
+
+    chord = tuple(
+        row[1]
+        for row in stations
+    )
+
+    section_cl = tuple(
+        row[2]
+        for row in stations
+    )
+
+    lift = tuple(
+        row[3]
+        for row in stations
+    )
+
+    total_lift = integrate_distributed_load(
+        y,
+        lift,
+    )
+
+    return HalfWingAerodynamicLoad(
+        side=side,
+        y_ft=y,
+        chord_ft=chord,
+        section_cl=section_cl,
+        lift_lbf_per_ft=lift,
+        total_lift_lbf=total_lift,
+    )
+
+
+def solve_one_way_local_q_aero_structural_bending(
+    *,
+    lifting_line: LiftingLineSolution,
+    local_aero_state: M20MLocalAeroStateDistribution,
+    semi_span_ft: float,
+    tip_chord_ft: float,
+    left_ei_lbf_ft2: Sequence[float],
+    right_ei_lbf_ft2: Sequence[float],
+) -> OneWayAeroStructuralSolution:
+    """
+    Couple finite-wing aerodynamics to independent left/right beam
+    solvers using stationwise dynamic pressure.
+
+        alpha(y)
+            -> Cl(y)
+            -> q(y)
+            -> L'(y)
+            -> M(y)
+            -> w(y)
+
+    Coupling remains one-way. Structural deformation does not yet
+    feed back into aerodynamic twist.
+    """
+
+    left_load = extract_half_wing_local_q_load(
+        lifting_line,
+        local_aero_state,
+        side="left",
+        semi_span_ft=semi_span_ft,
+        tip_chord_ft=tip_chord_ft,
+    )
+
+    right_load = extract_half_wing_local_q_load(
+        lifting_line,
+        local_aero_state,
+        side="right",
+        semi_span_ft=semi_span_ft,
+        tip_chord_ft=tip_chord_ft,
+    )
+
+    if len(left_ei_lbf_ft2) != len(
+        left_load.y_ft
+    ):
+        raise ValueError(
+            "Left EI distribution must match left structural grid"
+        )
+
+    if len(right_ei_lbf_ft2) != len(
+        right_load.y_ft
+    ):
+        raise ValueError(
+            "Right EI distribution must match right structural grid"
+        )
+
+    left_bending = solve_cantilever_bending(
+        left_load.y_ft,
+        left_load.lift_lbf_per_ft,
+        left_ei_lbf_ft2,
+    )
+
+    right_bending = solve_cantilever_bending(
+        right_load.y_ft,
+        right_load.lift_lbf_per_ft,
+        right_ei_lbf_ft2,
+    )
+
+    return OneWayAeroStructuralSolution(
+        left_load=left_load,
+        right_load=right_load,
+        left_bending=left_bending,
+        right_bending=right_bending,
+    )

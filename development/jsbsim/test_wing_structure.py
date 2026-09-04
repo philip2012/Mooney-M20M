@@ -27,10 +27,13 @@ from wing_structure import (
     M20M_ROOT_ZERO_LIFT_ALPHA_RAD,
     M20M_TIP_LIFT_SLOPE_PER_RAD,
     M20M_TIP_ZERO_LIFT_ALPHA_RAD,
+    M20MLocalAeroStateDistribution,
     make_m20m_airfoil_distribution,
     mooney_m20m_section_linear_aerodynamics,
     make_m20m_local_aero_state_distribution,
     section_flow_properties,
+    extract_half_wing_local_q_load,
+    solve_one_way_local_q_aero_structural_bending,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -2034,6 +2037,310 @@ class TestLocalAerodynamicState(unittest.TestCase):
             state.dynamic_pressure_psf[0],
             state.dynamic_pressure_psf[center],
         )
+
+
+class TestLocalDynamicPressureCoupling(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.rho = 0.002
+        self.mu = 4.0e-7
+        self.speed = 250.0
+
+        # Artificial stiffness used ONLY to validate coupling.
+        self.test_ei = 2_000_000.0
+
+    def solve_m20m(
+        self,
+        roll_rate_rad_s,
+    ):
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=self.speed,
+            roll_rate_rad_s=roll_rate_rad_s,
+            station_count=41,
+        )
+
+        airfoils = make_m20m_airfoil_distribution(
+            flow.signed_y_ft,
+            self.planform.semi_span_ft,
+        )
+
+        aero = solve_lifting_line(
+            wingspan_ft=self.planform.wingspan_ft,
+            wing_area_sqft=self.planform.wing_area_sqft,
+            theta_rad=flow.theta_rad,
+            chord_ft=flow.chord_ft,
+            alpha_geometric_rad=flow.effective_alpha_rad,
+            lift_curve_slope_per_rad=airfoils.lift_curve_slope_per_rad,
+            alpha_zero_lift_rad=airfoils.alpha_zero_lift_rad,
+        )
+
+        state = make_m20m_local_aero_state_distribution(
+            flow_distribution=flow,
+            air_density_slug_ft3=self.rho,
+            dynamic_viscosity_slug_ft_s=self.mu,
+        )
+
+        return flow, aero, state
+
+    def test_zero_roll_local_q_matches_scalar_q_load(self):
+        _, aero, state = self.solve_m20m(
+            0.0
+        )
+
+        center = (
+            len(state.dynamic_pressure_psf)
+            // 2
+        )
+
+        scalar_q = (
+            state.dynamic_pressure_psf[center]
+        )
+
+        scalar = extract_half_wing_load(
+            aero,
+            side="right",
+            qbar_psf=scalar_q,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        local = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        for scalar_load, local_load in zip(
+            scalar.lift_lbf_per_ft,
+            local.lift_lbf_per_ft,
+        ):
+            self.assertTrue(
+                math.isclose(
+                    scalar_load,
+                    local_load,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+        self.assertTrue(
+            math.isclose(
+                scalar.total_lift_lbf,
+                local.total_lift_lbf,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_zero_roll_local_q_bending_is_symmetric(self):
+        _, aero, state = self.solve_m20m(
+            0.0
+        )
+
+        left = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="left",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        right = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        left_ei = tuple(
+            self.test_ei
+            for _ in left.y_ft
+        )
+
+        right_ei = tuple(
+            self.test_ei
+            for _ in right.y_ft
+        )
+
+        result = solve_one_way_local_q_aero_structural_bending(
+            lifting_line=aero,
+            local_aero_state=state,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+            left_ei_lbf_ft2=left_ei,
+            right_ei_lbf_ft2=right_ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.root_moment_lbf_ft,
+                result.right_bending.root_moment_lbf_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.tip_deflection_ft,
+                result.right_bending.tip_deflection_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_roll_local_q_changes_distributed_load(self):
+        _, aero, state = self.solve_m20m(
+            0.7
+        )
+
+        center = (
+            len(state.dynamic_pressure_psf)
+            // 2
+        )
+
+        scalar_q = (
+            state.dynamic_pressure_psf[center]
+        )
+
+        scalar = extract_half_wing_load(
+            aero,
+            side="right",
+            qbar_psf=scalar_q,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        local = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        self.assertGreater(
+            local.total_lift_lbf,
+            scalar.total_lift_lbf,
+        )
+
+    def test_roll_produces_asymmetric_structural_response(self):
+        _, aero, state = self.solve_m20m(
+            0.7
+        )
+
+        left = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="left",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        right = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        left_ei = tuple(
+            self.test_ei
+            for _ in left.y_ft
+        )
+
+        right_ei = tuple(
+            self.test_ei
+            for _ in right.y_ft
+        )
+
+        result = solve_one_way_local_q_aero_structural_bending(
+            lifting_line=aero,
+            local_aero_state=state,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+            left_ei_lbf_ft2=left_ei,
+            right_ei_lbf_ft2=right_ei,
+        )
+
+        self.assertGreater(
+            result.right_load.total_lift_lbf,
+            result.left_load.total_lift_lbf,
+        )
+
+        self.assertGreater(
+            result.right_bending.root_moment_lbf_ft,
+            result.left_bending.root_moment_lbf_ft,
+        )
+
+        self.assertGreater(
+            result.right_bending.tip_deflection_ft,
+            result.left_bending.tip_deflection_ft,
+        )
+
+    def test_local_q_tip_load_remains_zero(self):
+        _, aero, state = self.solve_m20m(
+            0.7
+        )
+
+        load = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        self.assertAlmostEqual(
+            load.y_ft[-1],
+            self.planform.semi_span_ft,
+            places=12,
+        )
+
+        self.assertAlmostEqual(
+            load.lift_lbf_per_ft[-1],
+            0.0,
+            places=12,
+        )
+
+    def test_local_q_rejects_mismatched_span_grid(self):
+        _, aero, state = self.solve_m20m(
+            0.0
+        )
+
+        bad_y = list(
+            state.signed_y_ft
+        )
+
+        bad_y[5] += 0.01
+
+        bad_state = M20MLocalAeroStateDistribution(
+            signed_y_ft=tuple(bad_y),
+            chord_ft=state.chord_ft,
+            local_speed_fps=state.local_speed_fps,
+            dynamic_pressure_psf=state.dynamic_pressure_psf,
+            reynolds_number=state.reynolds_number,
+        )
+
+        with self.assertRaises(ValueError):
+            extract_half_wing_local_q_load(
+                aero,
+                bad_state,
+                side="right",
+                semi_span_ft=self.planform.semi_span_ft,
+                tip_chord_ft=self.planform.tip_chord_ft,
+            )
 
 
 if __name__ == "__main__":
