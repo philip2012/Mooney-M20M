@@ -15,6 +15,8 @@ from wing_structure import (
     sectional_lift_lbf_per_ft,
     solve_cantilever_bending,
     solve_lifting_line,
+    extract_half_wing_load,
+    solve_one_way_aero_structural_bending,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -1043,6 +1045,311 @@ class TestLiftingLine(unittest.TestCase):
         self.assertGreater(
             right,
             left,
+        )
+
+
+class TestAeroStructuralCoupling(unittest.TestCase):
+
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        (
+            self.theta,
+            self.signed_y,
+        ) = make_lifting_line_collocation(
+            MOONEY_WINGSPAN_FT,
+            41,
+        )
+
+        self.chord = tuple(
+            linear_chord_ft(
+                self.planform,
+                abs(y),
+            )
+            for y in self.signed_y
+        )
+
+        self.a0 = tuple(
+            2.0 * math.pi
+            for _ in self.theta
+        )
+
+        self.qbar = 70.0
+
+        # Deliberately artificial stiffness.
+        #
+        # This value exists ONLY to validate aero -> beam coupling.
+        # It is not an M20M structural estimate.
+        self.test_ei = 2_000_000.0
+
+    def solve_aero(
+        self,
+        alpha_distribution,
+    ):
+        return solve_lifting_line(
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            theta_rad=self.theta,
+            chord_ft=self.chord,
+            alpha_geometric_rad=alpha_distribution,
+            lift_curve_slope_per_rad=self.a0,
+        )
+
+    def make_ei(
+        self,
+        aerodynamic_solution,
+    ):
+        left = extract_half_wing_load(
+            aerodynamic_solution,
+            side="left",
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        right = extract_half_wing_load(
+            aerodynamic_solution,
+            side="right",
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        return (
+            tuple(
+                self.test_ei
+                for _ in left.y_ft
+            ),
+            tuple(
+                self.test_ei
+                for _ in right.y_ft
+            ),
+        )
+
+    def test_symmetric_aero_produces_symmetric_bending(self):
+        alpha = tuple(
+            0.07
+            for _ in self.theta
+        )
+
+        aero = self.solve_aero(
+            alpha
+        )
+
+        left_ei, right_ei = self.make_ei(
+            aero
+        )
+
+        result = solve_one_way_aero_structural_bending(
+            lifting_line=aero,
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+            left_ei_lbf_ft2=left_ei,
+            right_ei_lbf_ft2=right_ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_load.total_lift_lbf,
+                result.right_load.total_lift_lbf,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.root_moment_lbf_ft,
+                result.right_bending.root_moment_lbf_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.tip_deflection_ft,
+                result.right_bending.tip_deflection_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_half_wing_loads_reconstruct_total_lift(self):
+        alpha = tuple(
+            0.07
+            for _ in self.theta
+        )
+
+        aero = self.solve_aero(
+            alpha
+        )
+
+        left = extract_half_wing_load(
+            aero,
+            side="left",
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        right = extract_half_wing_load(
+            aero,
+            side="right",
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        integrated_lift = (
+            left.total_lift_lbf
+            + right.total_lift_lbf
+        )
+
+        coefficient_lift = (
+            self.qbar
+            * MOONEY_WING_AREA_SQFT
+            * aero.wing_cl
+        )
+
+        # Numerical integration is being performed over the discrete
+        # lifting-line structural grid rather than analytically.
+        self.assertTrue(
+            math.isclose(
+                integrated_lift,
+                coefficient_lift,
+                rel_tol=2e-3,
+                abs_tol=1e-6,
+            )
+        )
+
+    def test_double_alpha_doubles_structural_deflection(self):
+        low_alpha = tuple(
+            0.04
+            for _ in self.theta
+        )
+
+        high_alpha = tuple(
+            0.08
+            for _ in self.theta
+        )
+
+        low_aero = self.solve_aero(
+            low_alpha
+        )
+
+        high_aero = self.solve_aero(
+            high_alpha
+        )
+
+        low_left_ei, low_right_ei = self.make_ei(
+            low_aero
+        )
+
+        high_left_ei, high_right_ei = self.make_ei(
+            high_aero
+        )
+
+        low = solve_one_way_aero_structural_bending(
+            lifting_line=low_aero,
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+            left_ei_lbf_ft2=low_left_ei,
+            right_ei_lbf_ft2=low_right_ei,
+        )
+
+        high = solve_one_way_aero_structural_bending(
+            lifting_line=high_aero,
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+            left_ei_lbf_ft2=high_left_ei,
+            right_ei_lbf_ft2=high_right_ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                high.right_bending.tip_deflection_ft,
+                2.0
+                * low.right_bending.tip_deflection_ft,
+                rel_tol=1e-9,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_asymmetric_aero_produces_asymmetric_bending(self):
+        alpha = tuple(
+            0.06
+            + 0.001 * y
+            for y in self.signed_y
+        )
+
+        aero = self.solve_aero(
+            alpha
+        )
+
+        left_ei, right_ei = self.make_ei(
+            aero
+        )
+
+        result = solve_one_way_aero_structural_bending(
+            lifting_line=aero,
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+            left_ei_lbf_ft2=left_ei,
+            right_ei_lbf_ft2=right_ei,
+        )
+
+        self.assertGreater(
+            result.right_load.total_lift_lbf,
+            result.left_load.total_lift_lbf,
+        )
+
+        self.assertGreater(
+            result.right_bending.root_moment_lbf_ft,
+            result.left_bending.root_moment_lbf_ft,
+        )
+
+        self.assertGreater(
+            result.right_bending.tip_deflection_ft,
+            result.left_bending.tip_deflection_ft,
+        )
+
+    def test_tip_load_is_zero(self):
+        alpha = tuple(
+            0.07
+            for _ in self.theta
+        )
+
+        aero = self.solve_aero(
+            alpha
+        )
+
+        right = extract_half_wing_load(
+            aero,
+            side="right",
+            qbar_psf=self.qbar,
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        self.assertAlmostEqual(
+            right.y_ft[-1],
+            self.planform.semi_span_ft,
+            places=12,
+        )
+
+        self.assertAlmostEqual(
+            right.lift_lbf_per_ft[-1],
+            0.0,
+            places=12,
         )
 
 
