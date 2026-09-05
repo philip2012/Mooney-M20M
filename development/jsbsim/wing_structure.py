@@ -3947,3 +3947,378 @@ def make_piecewise_linear_ei_distribution(
     return tuple(
         result
     )
+
+
+@dataclass(frozen=True)
+class ISparSectionProperties:
+    """
+    Reduced-order symmetric I-spar section.
+
+    All geometry is explicit and expressed in inches.
+
+    `cap_centroid_separation_in` is the vertical distance between
+    upper and lower cap centroids.
+
+    No Mooney-specific dimensions are assumed by this type.
+    """
+
+    cap_width_in: float
+    cap_thickness_in: float
+    cap_centroid_separation_in: float
+
+    web_thickness_in: float
+    web_height_in: float
+
+    cap_area_in2: float
+    cap_local_second_moment_in4: float
+    cap_pair_second_moment_in4: float
+    web_second_moment_in4: float
+    total_second_moment_in4: float
+
+
+@dataclass(frozen=True)
+class SpanwiseSparSectionProperties:
+    """
+    Main-spar section properties on a root-to-tip half-wing grid.
+    """
+
+    y_ft: tuple[float, ...]
+
+    cap_width_in: tuple[float, ...]
+    cap_thickness_in: tuple[float, ...]
+    cap_centroid_separation_in: tuple[float, ...]
+
+    web_thickness_in: tuple[float, ...]
+    web_height_in: tuple[float, ...]
+
+    second_moment_in4: tuple[float, ...]
+
+
+def rectangular_second_moment_in4(
+    *,
+    width_in: float,
+    height_in: float,
+) -> float:
+    """
+    Second moment of area of a rectangle about its centroidal
+    horizontal axis:
+
+        I = b h^3 / 12
+    """
+
+    values = (
+        width_in,
+        height_in,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in values
+    ):
+        raise ValueError(
+            "Rectangle dimensions must be finite"
+        )
+
+    if any(
+        value <= 0.0
+        for value in values
+    ):
+        raise ValueError(
+            "Rectangle dimensions must be positive"
+        )
+
+    return (
+        width_in
+        * height_in ** 3
+        / 12.0
+    )
+
+
+def symmetric_cap_pair_second_moment_in4(
+    *,
+    cap_width_in: float,
+    cap_thickness_in: float,
+    cap_centroid_separation_in: float,
+) -> float:
+    """
+    Vertical-bending second moment for identical upper/lower caps.
+
+    Parallel-axis theorem:
+
+        I_pair =
+            2 * (
+                I_cap
+                + A_cap * (d / 2)^2
+            )
+
+    where `d` is cap-centroid separation.
+    """
+
+    values = (
+        cap_width_in,
+        cap_thickness_in,
+        cap_centroid_separation_in,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in values
+    ):
+        raise ValueError(
+            "Spar cap geometry must be finite"
+        )
+
+    if any(
+        value <= 0.0
+        for value in values
+    ):
+        raise ValueError(
+            "Spar cap geometry must be positive"
+        )
+
+    area = (
+        cap_width_in
+        * cap_thickness_in
+    )
+
+    local_i = rectangular_second_moment_in4(
+        width_in=cap_width_in,
+        height_in=cap_thickness_in,
+    )
+
+    offset = (
+        cap_centroid_separation_in
+        / 2.0
+    )
+
+    return (
+        2.0
+        * (
+            local_i
+            + area
+            * offset ** 2
+        )
+    )
+
+
+def make_i_spar_section_properties(
+    *,
+    cap_width_in: float,
+    cap_thickness_in: float,
+    cap_centroid_separation_in: float,
+    web_thickness_in: float,
+    web_height_in: float,
+) -> ISparSectionProperties:
+    """
+    Calculate reduced-order vertical bending section properties for
+    a symmetric main spar.
+
+    Total section inertia is:
+
+        I_total = I_caps + I_web
+
+    Skin, stringer, rib and secondary-spar contributions are NOT
+    included here. They can be added later as separate structural
+    terms once their geometry is defensible.
+    """
+
+    cap_values = (
+        cap_width_in,
+        cap_thickness_in,
+        cap_centroid_separation_in,
+    )
+
+    web_values = (
+        web_thickness_in,
+        web_height_in,
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in cap_values + web_values
+    ):
+        raise ValueError(
+            "Spar geometry must be finite"
+        )
+
+    if any(
+        value <= 0.0
+        for value in cap_values + web_values
+    ):
+        raise ValueError(
+            "Spar geometry must be positive"
+        )
+
+    cap_area = (
+        cap_width_in
+        * cap_thickness_in
+    )
+
+    cap_local_i = rectangular_second_moment_in4(
+        width_in=cap_width_in,
+        height_in=cap_thickness_in,
+    )
+
+    cap_pair_i = symmetric_cap_pair_second_moment_in4(
+        cap_width_in=cap_width_in,
+        cap_thickness_in=cap_thickness_in,
+        cap_centroid_separation_in=(
+            cap_centroid_separation_in
+        ),
+    )
+
+    web_i = rectangular_second_moment_in4(
+        width_in=web_thickness_in,
+        height_in=web_height_in,
+    )
+
+    return ISparSectionProperties(
+        cap_width_in=float(
+            cap_width_in
+        ),
+        cap_thickness_in=float(
+            cap_thickness_in
+        ),
+        cap_centroid_separation_in=float(
+            cap_centroid_separation_in
+        ),
+        web_thickness_in=float(
+            web_thickness_in
+        ),
+        web_height_in=float(
+            web_height_in
+        ),
+        cap_area_in2=cap_area,
+        cap_local_second_moment_in4=cap_local_i,
+        cap_pair_second_moment_in4=cap_pair_i,
+        web_second_moment_in4=web_i,
+        total_second_moment_in4=(
+            cap_pair_i
+            + web_i
+        ),
+    )
+
+
+def make_spanwise_spar_section_properties(
+    *,
+    y_ft: Sequence[float],
+    cap_width_in: Sequence[float],
+    cap_thickness_in: Sequence[float],
+    cap_centroid_separation_in: Sequence[float],
+    web_thickness_in: Sequence[float],
+    web_height_in: Sequence[float],
+) -> SpanwiseSparSectionProperties:
+    """
+    Calculate reduced-order spar I(y) from explicit station geometry.
+
+    Every geometry array must correspond to the same root-to-tip
+    structural grid.
+    """
+
+    count = len(y_ft)
+
+    if count < 2:
+        raise ValueError(
+            "At least two spar stations are required"
+        )
+
+    geometry_arrays = (
+        cap_width_in,
+        cap_thickness_in,
+        cap_centroid_separation_in,
+        web_thickness_in,
+        web_height_in,
+    )
+
+    if any(
+        len(values) != count
+        for values in geometry_arrays
+    ):
+        raise ValueError(
+            "Spar geometry arrays must match span grid"
+        )
+
+    integrate_distributed_load(
+        y_ft,
+        tuple(
+            0.0
+            for _ in y_ft
+        ),
+    )
+
+    sections = tuple(
+        make_i_spar_section_properties(
+            cap_width_in=cap_width,
+            cap_thickness_in=cap_thickness,
+            cap_centroid_separation_in=cap_separation,
+            web_thickness_in=web_thickness,
+            web_height_in=web_height,
+        )
+        for (
+            cap_width,
+            cap_thickness,
+            cap_separation,
+            web_thickness,
+            web_height,
+        ) in zip(
+            cap_width_in,
+            cap_thickness_in,
+            cap_centroid_separation_in,
+            web_thickness_in,
+            web_height_in,
+        )
+    )
+
+    return SpanwiseSparSectionProperties(
+        y_ft=tuple(
+            float(value)
+            for value in y_ft
+        ),
+        cap_width_in=tuple(
+            float(value)
+            for value in cap_width_in
+        ),
+        cap_thickness_in=tuple(
+            float(value)
+            for value in cap_thickness_in
+        ),
+        cap_centroid_separation_in=tuple(
+            float(value)
+            for value in cap_centroid_separation_in
+        ),
+        web_thickness_in=tuple(
+            float(value)
+            for value in web_thickness_in
+        ),
+        web_height_in=tuple(
+            float(value)
+            for value in web_height_in
+        ),
+        second_moment_in4=tuple(
+            section.total_second_moment_in4
+            for section in sections
+        ),
+    )
+
+
+def make_spar_bending_stiffness(
+    *,
+    spar_sections: SpanwiseSparSectionProperties,
+    elastic_modulus_psi: Sequence[float],
+) -> SpanwiseBendingStiffness:
+    """
+    Convert spanwise spar geometry directly to EI(y).
+
+    This represents MAIN-SPAR bending stiffness only.
+
+    Additional structural contributions must not be silently folded
+    into this result.
+    """
+
+    return make_spanwise_bending_stiffness(
+        y_ft=spar_sections.y_ft,
+        elastic_modulus_psi=elastic_modulus_psi,
+        second_moment_in4=(
+            spar_sections.second_moment_in4
+        ),
+    )

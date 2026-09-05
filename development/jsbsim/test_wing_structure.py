@@ -65,6 +65,13 @@ from wing_structure import (
     bending_stiffness_lbf_ft2,
     make_piecewise_linear_ei_distribution,
     make_spanwise_bending_stiffness,
+    ISparSectionProperties,
+    SpanwiseSparSectionProperties,
+    make_i_spar_section_properties,
+    make_spar_bending_stiffness,
+    make_spanwise_spar_section_properties,
+    rectangular_second_moment_in4,
+    symmetric_cap_pair_second_moment_in4,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -3904,6 +3911,251 @@ class TestSpanwiseBendingStiffness(unittest.TestCase):
                     4_000_000.0,
                     2_000_000.0,
                 ),
+            )
+
+
+class TestSparSectionMechanics(unittest.TestCase):
+    def test_rectangle_second_moment_matches_formula(self):
+        actual = rectangular_second_moment_in4(
+            width_in=2.0,
+            height_in=3.0,
+        )
+
+        expected = (
+            2.0
+            * 3.0 ** 3
+            / 12.0
+        )
+
+        self.assertTrue(
+            math.isclose(
+                actual,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_cap_pair_matches_parallel_axis_theorem(self):
+        width = 2.0
+        thickness = 0.5
+        separation = 10.0
+
+        actual = symmetric_cap_pair_second_moment_in4(
+            cap_width_in=width,
+            cap_thickness_in=thickness,
+            cap_centroid_separation_in=separation,
+        )
+
+        area = (
+            width
+            * thickness
+        )
+
+        local_i = (
+            width
+            * thickness ** 3
+            / 12.0
+        )
+
+        expected = (
+            2.0
+            * (
+                local_i
+                + area
+                * (separation / 2.0) ** 2
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                actual,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_larger_cap_separation_increases_bending_inertia(self):
+        close = symmetric_cap_pair_second_moment_in4(
+            cap_width_in=2.0,
+            cap_thickness_in=0.5,
+            cap_centroid_separation_in=6.0,
+        )
+
+        far = symmetric_cap_pair_second_moment_in4(
+            cap_width_in=2.0,
+            cap_thickness_in=0.5,
+            cap_centroid_separation_in=12.0,
+        )
+
+        self.assertGreater(
+            far,
+            close,
+        )
+
+    def test_web_adds_positive_section_inertia(self):
+        section = make_i_spar_section_properties(
+            cap_width_in=2.0,
+            cap_thickness_in=0.5,
+            cap_centroid_separation_in=10.0,
+            web_thickness_in=0.1,
+            web_height_in=9.5,
+        )
+
+        self.assertGreater(
+            section.web_second_moment_in4,
+            0.0,
+        )
+
+        self.assertGreater(
+            section.total_second_moment_in4,
+            section.cap_pair_second_moment_in4,
+        )
+
+    def test_section_total_is_caps_plus_web(self):
+        section = make_i_spar_section_properties(
+            cap_width_in=2.0,
+            cap_thickness_in=0.5,
+            cap_centroid_separation_in=10.0,
+            web_thickness_in=0.1,
+            web_height_in=9.5,
+        )
+
+        expected = (
+            section.cap_pair_second_moment_in4
+            + section.web_second_moment_in4
+        )
+
+        self.assertTrue(
+            math.isclose(
+                section.total_second_moment_in4,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_rejects_nonpositive_spar_geometry(self):
+        with self.assertRaises(ValueError):
+            make_i_spar_section_properties(
+                cap_width_in=2.0,
+                cap_thickness_in=0.0,
+                cap_centroid_separation_in=10.0,
+                web_thickness_in=0.1,
+                web_height_in=9.5,
+            )
+
+    def test_spanwise_spar_section_tracks_taper(self):
+        y = (
+            0.0,
+            5.0,
+            10.0,
+        )
+
+        sections = make_spanwise_spar_section_properties(
+            y_ft=y,
+            cap_width_in=(
+                2.0,
+                1.5,
+                1.0,
+            ),
+            cap_thickness_in=(
+                0.5,
+                0.4,
+                0.3,
+            ),
+            cap_centroid_separation_in=(
+                12.0,
+                9.0,
+                6.0,
+            ),
+            web_thickness_in=(
+                0.12,
+                0.10,
+                0.08,
+            ),
+            web_height_in=(
+                11.5,
+                8.6,
+                5.7,
+            ),
+        )
+
+        self.assertGreater(
+            sections.second_moment_in4[0],
+            sections.second_moment_in4[1],
+        )
+
+        self.assertGreater(
+            sections.second_moment_in4[1],
+            sections.second_moment_in4[2],
+        )
+
+    def test_spar_geometry_converts_to_ei(self):
+        y = (
+            0.0,
+            5.0,
+            10.0,
+        )
+
+        sections = make_spanwise_spar_section_properties(
+            y_ft=y,
+            cap_width_in=(
+                2.0,
+                1.5,
+                1.0,
+            ),
+            cap_thickness_in=(
+                0.5,
+                0.4,
+                0.3,
+            ),
+            cap_centroid_separation_in=(
+                12.0,
+                9.0,
+                6.0,
+            ),
+            web_thickness_in=(
+                0.12,
+                0.10,
+                0.08,
+            ),
+            web_height_in=(
+                11.5,
+                8.6,
+                5.7,
+            ),
+        )
+
+        modulus = (
+            10_000_000.0,
+            10_000_000.0,
+            10_000_000.0,
+        )
+
+        stiffness = make_spar_bending_stiffness(
+            spar_sections=sections,
+            elastic_modulus_psi=modulus,
+        )
+
+        for ei, second_moment in zip(
+            stiffness.ei_lbf_ft2,
+            sections.second_moment_in4,
+        ):
+            expected = (
+                10_000_000.0
+                * second_moment
+                / 144.0
+            )
+
+            self.assertTrue(
+                math.isclose(
+                    ei,
+                    expected,
+                    rel_tol=1e-12,
+                    abs_tol=1e-9,
+                )
             )
 
 
