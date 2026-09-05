@@ -42,6 +42,8 @@ from wing_structure import (
     M20M_FUEL_DENSITY_LB_PER_GAL,
     M20M_USABLE_FUEL_PER_WING_GAL,
     make_m20m_wing_fuel_distribution,
+    solve_fuel_coupled_aero_structural_bending,
+    OneWayAeroStructuralSolution
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -2880,6 +2882,203 @@ class TestMooneyWingFuelDistribution(unittest.TestCase):
                 left_fuel_lbm=-1.0,
                 right_fuel_lbm=0.0,
             )
+
+
+class TestFuelCoupledStructuralResponse(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        airfoils = make_m20m_airfoil_distribution(
+            flow.signed_y_ft,
+            self.planform.semi_span_ft,
+        )
+
+        aero = solve_lifting_line(
+            wingspan_ft=self.planform.wingspan_ft,
+            wing_area_sqft=self.planform.wing_area_sqft,
+            theta_rad=flow.theta_rad,
+            chord_ft=flow.chord_ft,
+            alpha_geometric_rad=flow.effective_alpha_rad,
+            lift_curve_slope_per_rad=airfoils.lift_curve_slope_per_rad,
+            alpha_zero_lift_rad=airfoils.alpha_zero_lift_rad,
+        )
+
+        state = make_m20m_local_aero_state_distribution(
+            flow_distribution=flow,
+            air_density_slug_ft3=0.002,
+            dynamic_viscosity_slug_ft_s=4.0e-7,
+        )
+
+        left = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="left",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        right = extract_half_wing_local_q_load(
+            aero,
+            state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        test_ei = 2_000_000.0
+
+        self.aero_structure = OneWayAeroStructuralSolution(
+            left_load=left,
+            right_load=right,
+            left_bending=solve_cantilever_bending(
+                left.y_ft,
+                left.lift_lbf_per_ft,
+                tuple(
+                    test_ei
+                    for _ in left.y_ft
+                ),
+            ),
+            right_bending=solve_cantilever_bending(
+                right.y_ft,
+                right.lift_lbf_per_ft,
+                tuple(
+                    test_ei
+                    for _ in right.y_ft
+                ),
+            ),
+        )
+
+        self.y = left.y_ft
+
+        self.test_ei = tuple(
+            test_ei
+            for _ in self.y
+        )
+
+        self.zero_structural_mass = tuple(
+            0.0
+            for _ in self.y
+        )
+
+        # Synthetic distribution shape only.
+        self.fuel_shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+    def test_equal_fuel_preserves_symmetric_bending(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.fuel_shape,
+            left_fuel_lbm=200.0,
+            right_fuel_lbm=200.0,
+        )
+
+        result = solve_fuel_coupled_aero_structural_bending(
+            aerodynamic_solution=self.aero_structure,
+            left_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            right_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            fuel_distribution=fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+            left_ei_lbf_ft2=self.test_ei,
+            right_ei_lbf_ft2=self.test_ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.root_moment_lbf_ft,
+                result.right_bending.root_moment_lbf_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
+        )
+
+    def test_fuel_imbalance_changes_root_bending(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.fuel_shape,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=50.0,
+        )
+
+        result = solve_fuel_coupled_aero_structural_bending(
+            aerodynamic_solution=self.aero_structure,
+            left_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            right_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            fuel_distribution=fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+            left_ei_lbf_ft2=self.test_ei,
+            right_ei_lbf_ft2=self.test_ei,
+        )
+
+        # More fuel means more downward inertial relief,
+        # therefore less positive upward bending moment.
+        self.assertLess(
+            result.left_bending.root_moment_lbf_ft,
+            result.right_bending.root_moment_lbf_ft,
+        )
+
+    def test_fuel_imbalance_changes_tip_deflection(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.fuel_shape,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=50.0,
+        )
+
+        result = solve_fuel_coupled_aero_structural_bending(
+            aerodynamic_solution=self.aero_structure,
+            left_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            right_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            fuel_distribution=fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+            left_ei_lbf_ft2=self.test_ei,
+            right_ei_lbf_ft2=self.test_ei,
+        )
+
+        self.assertLess(
+            result.left_bending.tip_deflection_ft,
+            result.right_bending.tip_deflection_ft,
+        )
+
+    def test_zero_g_removes_fuel_inertial_effect(self):
+        fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=self.fuel_shape,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=0.0,
+        )
+
+        result = solve_fuel_coupled_aero_structural_bending(
+            aerodynamic_solution=self.aero_structure,
+            left_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            right_structural_mass_slugs_per_ft=self.zero_structural_mass,
+            fuel_distribution=fuel,
+            normal_acceleration_fps2=0.0,
+            left_ei_lbf_ft2=self.test_ei,
+            right_ei_lbf_ft2=self.test_ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.root_moment_lbf_ft,
+                result.right_bending.root_moment_lbf_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -2878,3 +2878,140 @@ def make_m20m_wing_fuel_distribution(
         left_mass_slugs_per_ft=left_distribution,
         right_mass_slugs_per_ft=right_distribution,
     )
+
+
+@dataclass(frozen=True)
+class FuelCoupledAeroStructuralSolution:
+    left_load: DistributedInertialLoad
+    right_load: DistributedInertialLoad
+
+    left_bending: BendingSolution
+    right_bending: BendingSolution
+
+
+def solve_fuel_coupled_aero_structural_bending(
+    *,
+    aerodynamic_solution: OneWayAeroStructuralSolution,
+    left_structural_mass_slugs_per_ft: Sequence[float],
+    right_structural_mass_slugs_per_ft: Sequence[float],
+    fuel_distribution: M20MWingFuelDistribution,
+    normal_acceleration_fps2: float,
+    left_ei_lbf_ft2: Sequence[float],
+    right_ei_lbf_ft2: Sequence[float],
+) -> FuelCoupledAeroStructuralSolution:
+    """
+    Apply structural and fuel inertia to left/right aerodynamic loads.
+
+    Pipeline:
+
+        aerodynamic lift
+            +
+        distributed structural inertia
+            +
+        distributed fuel inertia
+            ->
+        net beam load
+            ->
+        bending response
+
+    This is still static, one-way structural coupling.
+    """
+
+    left_aero = aerodynamic_solution.left_load
+    right_aero = aerodynamic_solution.right_load
+
+    if len(fuel_distribution.y_ft) != len(left_aero.y_ft):
+        raise ValueError(
+            "Fuel grid must match structural half-wing grid"
+        )
+
+    if not all(
+        math.isclose(
+            fuel_y,
+            structural_y,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        for fuel_y, structural_y in zip(
+            fuel_distribution.y_ft,
+            left_aero.y_ft,
+        )
+    ):
+        raise ValueError(
+            "Fuel grid must match structural half-wing grid"
+        )
+
+    if len(right_aero.y_ft) != len(left_aero.y_ft):
+        raise ValueError(
+            "Left and right structural grids must match"
+        )
+
+    if not all(
+        math.isclose(
+            left_y,
+            right_y,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        for left_y, right_y in zip(
+            left_aero.y_ft,
+            right_aero.y_ft,
+        )
+    ):
+        raise ValueError(
+            "Left and right structural grids must match"
+        )
+
+    count = len(
+        left_aero.y_ft
+    )
+
+    arrays = (
+        left_structural_mass_slugs_per_ft,
+        right_structural_mass_slugs_per_ft,
+        left_ei_lbf_ft2,
+        right_ei_lbf_ft2,
+    )
+
+    if any(
+        len(values) != count
+        for values in arrays
+    ):
+        raise ValueError(
+            "Structural mass and EI arrays must match half-wing grid"
+        )
+
+    left_net = solve_distributed_inertial_load(
+        y_ft=left_aero.y_ft,
+        aerodynamic_load_lbf_per_ft=left_aero.lift_lbf_per_ft,
+        structural_mass_slugs_per_ft=left_structural_mass_slugs_per_ft,
+        fuel_mass_slugs_per_ft=fuel_distribution.left_mass_slugs_per_ft,
+        normal_acceleration_fps2=normal_acceleration_fps2,
+    )
+
+    right_net = solve_distributed_inertial_load(
+        y_ft=right_aero.y_ft,
+        aerodynamic_load_lbf_per_ft=right_aero.lift_lbf_per_ft,
+        structural_mass_slugs_per_ft=right_structural_mass_slugs_per_ft,
+        fuel_mass_slugs_per_ft=fuel_distribution.right_mass_slugs_per_ft,
+        normal_acceleration_fps2=normal_acceleration_fps2,
+    )
+
+    left_bending = solve_cantilever_bending(
+        left_net.y_ft,
+        left_net.net_load_lbf_per_ft,
+        left_ei_lbf_ft2,
+    )
+
+    right_bending = solve_cantilever_bending(
+        right_net.y_ft,
+        right_net.net_load_lbf_per_ft,
+        right_ei_lbf_ft2,
+    )
+
+    return FuelCoupledAeroStructuralSolution(
+        left_load=left_net,
+        right_load=right_net,
+        left_bending=left_bending,
+        right_bending=right_bending,
+    )
