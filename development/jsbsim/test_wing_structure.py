@@ -55,6 +55,11 @@ from wing_structure import (
     make_m20m_geometry_fuel_distribution,
     mooney_m20m_fuel_tank_shape_value,
     mooney_m20m_thickness_ratio,
+    DistributedMassComponent,
+    WingStructuralMassDistribution,
+    combine_distributed_mass_components,
+    make_chord_proportional_mass_shape,
+    make_distributed_mass_component,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -3264,6 +3269,217 @@ class TestMooneyFuelTankGeometry(unittest.TestCase):
                     mass,
                     0.0,
                 )
+
+
+class TestStructuralMassComponents(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.y = make_uniform_span_grid(
+            self.planform.semi_span_ft,
+            101,
+        )
+
+        self.uniform_shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+    def integrated_lbm(
+        self,
+        distribution,
+    ):
+        return (
+            integrate_distributed_load(
+                self.y,
+                distribution,
+            )
+            * STANDARD_GRAVITY_FPS2
+        )
+
+    def test_component_reconstructs_requested_mass(self):
+        component = make_distributed_mass_component(
+            name="test structure",
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=100.0,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                self.integrated_lbm(
+                    component.mass_slugs_per_ft
+                ),
+                100.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_zero_mass_component_is_zero_everywhere(self):
+        component = make_distributed_mass_component(
+            name="zero structure",
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=0.0,
+        )
+
+        self.assertTrue(
+            all(
+                value == 0.0
+                for value in component.mass_slugs_per_ft
+            )
+        )
+
+    def test_rejects_negative_component_mass(self):
+        with self.assertRaises(ValueError):
+            make_distributed_mass_component(
+                name="invalid",
+                y_ft=self.y,
+                relative_shape=self.uniform_shape,
+                total_mass_lbm=-1.0,
+            )
+
+    def test_rejects_empty_component_name(self):
+        with self.assertRaises(ValueError):
+            make_distributed_mass_component(
+                name="",
+                y_ft=self.y,
+                relative_shape=self.uniform_shape,
+                total_mass_lbm=10.0,
+            )
+
+    def test_components_sum_to_total_structural_mass(self):
+        spar = make_distributed_mass_component(
+            name="spar",
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=80.0,
+        )
+
+        skin = make_distributed_mass_component(
+            name="skin",
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=120.0,
+        )
+
+        combined = combine_distributed_mass_components(
+            y_ft=self.y,
+            components=(
+                spar,
+                skin,
+            ),
+        )
+
+        self.assertTrue(
+            math.isclose(
+                combined.total_mass_lbm,
+                200.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_combined_distribution_is_pointwise_sum(self):
+        first = make_distributed_mass_component(
+            name="first",
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=50.0,
+        )
+
+        second = make_distributed_mass_component(
+            name="second",
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=75.0,
+        )
+
+        combined = combine_distributed_mass_components(
+            y_ft=self.y,
+            components=(
+                first,
+                second,
+            ),
+        )
+
+        for actual, a, b in zip(
+            combined.mass_slugs_per_ft,
+            first.mass_slugs_per_ft,
+            second.mass_slugs_per_ft,
+        ):
+            self.assertTrue(
+                math.isclose(
+                    actual,
+                    a + b,
+                    rel_tol=1e-12,
+                    abs_tol=1e-12,
+                )
+            )
+
+    def test_chord_mass_shape_decreases_outboard(self):
+        shape = make_chord_proportional_mass_shape(
+            y_ft=self.y,
+            planform=self.planform,
+        )
+
+        self.assertGreater(
+            shape[0],
+            shape[-1],
+        )
+
+    def test_inboard_shape_has_more_inboard_centroid(self):
+        inboard_shape = tuple(
+            1.0 - (
+                0.8
+                * y
+                / self.planform.semi_span_ft
+            )
+            for y in self.y
+        )
+
+        outboard_shape = tuple(
+            0.2 + (
+                0.8
+                * y
+                / self.planform.semi_span_ft
+            )
+            for y in self.y
+        )
+
+        inboard = make_distributed_mass_component(
+            name="inboard",
+            y_ft=self.y,
+            relative_shape=inboard_shape,
+            total_mass_lbm=100.0,
+        )
+
+        outboard = make_distributed_mass_component(
+            name="outboard",
+            y_ft=self.y,
+            relative_shape=outboard_shape,
+            total_mass_lbm=100.0,
+        )
+
+        inboard_centroid = distributed_centroid_ft(
+            self.y,
+            inboard.mass_slugs_per_ft,
+        )
+
+        outboard_centroid = distributed_centroid_ft(
+            self.y,
+            outboard.mass_slugs_per_ft,
+        )
+
+        self.assertLess(
+            inboard_centroid,
+            outboard_centroid,
+        )
 
 
 if __name__ == "__main__":

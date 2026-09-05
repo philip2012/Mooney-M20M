@@ -3287,3 +3287,252 @@ def distributed_centroid_ft(
         first_moment
         / total
     )
+
+
+@dataclass(frozen=True)
+class DistributedMassComponent:
+    """
+    One independently normalized structural mass component.
+
+    Examples later may include:
+
+        main spar
+        skins
+        ribs
+        stringers
+        rear/stub spar
+        landing-gear support structure
+        aileron/flap structure
+
+    No M20M component weights are assumed here.
+    """
+
+    name: str
+    y_ft: tuple[float, ...]
+    total_mass_lbm: float
+    mass_slugs_per_ft: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class WingStructuralMassDistribution:
+    """
+    Combined structural mass distribution for one half-wing.
+    """
+
+    y_ft: tuple[float, ...]
+    components: tuple[DistributedMassComponent, ...]
+    mass_slugs_per_ft: tuple[float, ...]
+
+    @property
+    def total_mass_slugs(self) -> float:
+        return integrate_distributed_load(
+            self.y_ft,
+            self.mass_slugs_per_ft,
+        )
+
+    @property
+    def total_mass_lbm(self) -> float:
+        return (
+            self.total_mass_slugs
+            * STANDARD_GRAVITY_FPS2
+        )
+
+
+def make_distributed_mass_component(
+    *,
+    name: str,
+    y_ft: Sequence[float],
+    relative_shape: Sequence[float],
+    total_mass_lbm: float,
+) -> DistributedMassComponent:
+    """
+    Normalize one relative structural shape to an exact component mass.
+
+        integral m'(y) dy = component mass
+
+    `relative_shape` is dimensionless and defines only the spanwise
+    distribution shape.
+    """
+
+    if not isinstance(name, str):
+        raise ValueError(
+            "Component name must be a string"
+        )
+
+    if not name.strip():
+        raise ValueError(
+            "Component name cannot be empty"
+        )
+
+    if not math.isfinite(total_mass_lbm):
+        raise ValueError(
+            "Component mass must be finite"
+        )
+
+    if total_mass_lbm < 0.0:
+        raise ValueError(
+            "Component mass cannot be negative"
+        )
+
+    mass_slugs = pounds_mass_to_slugs(
+        total_mass_lbm
+    )
+
+    distribution = normalize_mass_distribution(
+        y_ft,
+        relative_shape,
+        mass_slugs,
+    )
+
+    return DistributedMassComponent(
+        name=name,
+        y_ft=tuple(
+            float(value)
+            for value in y_ft
+        ),
+        total_mass_lbm=float(
+            total_mass_lbm
+        ),
+        mass_slugs_per_ft=distribution,
+    )
+
+
+def combine_distributed_mass_components(
+    *,
+    y_ft: Sequence[float],
+    components: Sequence[DistributedMassComponent],
+) -> WingStructuralMassDistribution:
+    """
+    Sum independent structural mass components onto one common
+    root-to-tip half-wing grid.
+    """
+
+    if len(y_ft) < 2:
+        raise ValueError(
+            "At least two structural stations are required"
+        )
+
+    reference_grid = tuple(
+        float(value)
+        for value in y_ft
+    )
+
+    # Validate monotonic grid.
+    integrate_distributed_load(
+        reference_grid,
+        tuple(
+            0.0
+            for _ in reference_grid
+        ),
+    )
+
+    total = [
+        0.0
+        for _ in reference_grid
+    ]
+
+    for component in components:
+        if len(component.y_ft) != len(
+            reference_grid
+        ):
+            raise ValueError(
+                "Structural component grid length mismatch"
+            )
+
+        if not all(
+            math.isclose(
+                component_y,
+                reference_y,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+            for component_y, reference_y in zip(
+                component.y_ft,
+                reference_grid,
+            )
+        ):
+            raise ValueError(
+                "Structural component grid mismatch"
+            )
+
+        if len(
+            component.mass_slugs_per_ft
+        ) != len(reference_grid):
+            raise ValueError(
+                "Structural component distribution length mismatch"
+            )
+
+        for index, value in enumerate(
+            component.mass_slugs_per_ft
+        ):
+            if not math.isfinite(value):
+                raise ValueError(
+                    "Structural mass distribution must be finite"
+                )
+
+            if value < 0.0:
+                raise ValueError(
+                    "Structural mass distribution cannot be negative"
+                )
+
+            total[index] += value
+
+    return WingStructuralMassDistribution(
+        y_ft=reference_grid,
+        components=tuple(
+            components
+        ),
+        mass_slugs_per_ft=tuple(
+            total
+        ),
+    )
+
+
+def make_chord_proportional_mass_shape(
+    *,
+    y_ft: Sequence[float],
+    planform: TrapezoidalPlanform,
+) -> tuple[float, ...]:
+    """
+    Reduced-order area-per-span proxy:
+
+        shape(y) proportional to chord(y)
+
+    This helper does NOT claim the complete M20M wing mass follows
+    chord. It is intended for components whose material area per unit
+    span is reasonably approximated by local chord, such as an early
+    skin-area proxy.
+
+    Component-specific M20M shapes should replace this helper whenever
+    better geometry is available.
+    """
+
+    values = []
+
+    for y in y_ft:
+        if not math.isfinite(y):
+            raise ValueError(
+                "Spanwise position must be finite"
+            )
+
+        if (
+            y < -1e-12
+            or y > planform.semi_span_ft + 1e-12
+        ):
+            raise ValueError(
+                "Spanwise position lies outside half-wing"
+            )
+
+        values.append(
+            linear_chord_ft(
+                planform,
+                min(
+                    max(y, 0.0),
+                    planform.semi_span_ft,
+                ),
+            )
+        )
+
+    return tuple(
+        values
+    )
