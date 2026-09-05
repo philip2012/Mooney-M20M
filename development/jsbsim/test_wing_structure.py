@@ -61,6 +61,10 @@ from wing_structure import (
     make_chord_proportional_mass_shape,
     make_distributed_mass_component,
     solve_structural_mass_coupled_aero_bending,
+    SpanwiseBendingStiffness,
+    bending_stiffness_lbf_ft2,
+    make_piecewise_linear_ei_distribution,
+    make_spanwise_bending_stiffness,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -3710,6 +3714,197 @@ class TestStructuralMassCoupledResponse(unittest.TestCase):
                 abs_tol=1e-9,
             )
         )
+
+
+class TestSpanwiseBendingStiffness(unittest.TestCase):
+    def test_ei_unit_conversion(self):
+        actual = bending_stiffness_lbf_ft2(
+            elastic_modulus_psi=10_000_000.0,
+            second_moment_in4=100.0,
+        )
+
+        expected = (
+            10_000_000.0
+            * 100.0
+            / 144.0
+        )
+
+        self.assertTrue(
+            math.isclose(
+                actual,
+                expected,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            )
+        )
+
+    def test_spanwise_ei_matches_e_times_i(self):
+        y = (
+            0.0,
+            5.0,
+            10.0,
+        )
+
+        modulus = (
+            10_000_000.0,
+            10_000_000.0,
+            10_000_000.0,
+        )
+
+        second_moment = (
+            120.0,
+            80.0,
+            40.0,
+        )
+
+        stiffness = make_spanwise_bending_stiffness(
+            y_ft=y,
+            elastic_modulus_psi=modulus,
+            second_moment_in4=second_moment,
+        )
+
+        for actual, e, i in zip(
+            stiffness.ei_lbf_ft2,
+            modulus,
+            second_moment,
+        ):
+            expected = (
+                e
+                * i
+                / 144.0
+            )
+
+            self.assertTrue(
+                math.isclose(
+                    actual,
+                    expected,
+                    rel_tol=1e-12,
+                    abs_tol=1e-9,
+                )
+            )
+
+    def test_rejects_zero_elastic_modulus(self):
+        with self.assertRaises(ValueError):
+            bending_stiffness_lbf_ft2(
+                elastic_modulus_psi=0.0,
+                second_moment_in4=100.0,
+            )
+
+    def test_rejects_zero_second_moment(self):
+        with self.assertRaises(ValueError):
+            bending_stiffness_lbf_ft2(
+                elastic_modulus_psi=10_000_000.0,
+                second_moment_in4=0.0,
+            )
+
+    def test_piecewise_ei_hits_anchor_values(self):
+        y = (
+            0.0,
+            5.0,
+            10.0,
+        )
+
+        ei = make_piecewise_linear_ei_distribution(
+            y_ft=y,
+            anchor_y_ft=(
+                0.0,
+                5.0,
+                10.0,
+            ),
+            anchor_ei_lbf_ft2=(
+                8_000_000.0,
+                4_000_000.0,
+                2_000_000.0,
+            ),
+        )
+
+        self.assertEqual(
+            ei,
+            (
+                8_000_000.0,
+                4_000_000.0,
+                2_000_000.0,
+            ),
+        )
+
+    def test_piecewise_ei_interpolates_between_anchors(self):
+        ei = make_piecewise_linear_ei_distribution(
+            y_ft=(
+                0.0,
+                2.5,
+                5.0,
+                7.5,
+                10.0,
+            ),
+            anchor_y_ft=(
+                0.0,
+                5.0,
+                10.0,
+            ),
+            anchor_ei_lbf_ft2=(
+                8_000_000.0,
+                4_000_000.0,
+                2_000_000.0,
+            ),
+        )
+
+        self.assertTrue(
+            math.isclose(
+                ei[1],
+                6_000_000.0,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                ei[3],
+                3_000_000.0,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            )
+        )
+
+    def test_piecewise_ei_rejects_nonincreasing_anchors(self):
+        with self.assertRaises(ValueError):
+            make_piecewise_linear_ei_distribution(
+                y_ft=(
+                    0.0,
+                    5.0,
+                    10.0,
+                ),
+                anchor_y_ft=(
+                    0.0,
+                    5.0,
+                    5.0,
+                ),
+                anchor_ei_lbf_ft2=(
+                    8_000_000.0,
+                    4_000_000.0,
+                    2_000_000.0,
+                ),
+            )
+
+    def test_piecewise_ei_rejects_grid_outside_anchor_domain(self):
+        with self.assertRaises(ValueError):
+            make_piecewise_linear_ei_distribution(
+                y_ft=(
+                    0.0,
+                    5.0,
+                    11.0,
+                ),
+                anchor_y_ft=(
+                    0.0,
+                    5.0,
+                    10.0,
+                ),
+                anchor_ei_lbf_ft2=(
+                    8_000_000.0,
+                    4_000_000.0,
+                    2_000_000.0,
+                ),
+            )
 
 
 if __name__ == "__main__":

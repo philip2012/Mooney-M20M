@@ -3627,3 +3627,323 @@ def solve_structural_mass_coupled_aero_bending(
         left_ei_lbf_ft2=left_ei_lbf_ft2,
         right_ei_lbf_ft2=right_ei_lbf_ft2,
     )
+
+
+@dataclass(frozen=True)
+class SpanwiseBendingStiffness:
+    """
+    Spanwise vertical bending stiffness for one half-wing.
+
+    Section properties are retained separately so later M20M-specific
+    geometry can be audited instead of hiding everything inside EI.
+    """
+
+    y_ft: tuple[float, ...]
+    elastic_modulus_psi: tuple[float, ...]
+    second_moment_in4: tuple[float, ...]
+    ei_lbf_ft2: tuple[float, ...]
+
+    @property
+    def root_ei_lbf_ft2(self) -> float:
+        return self.ei_lbf_ft2[0]
+
+    @property
+    def tip_ei_lbf_ft2(self) -> float:
+        return self.ei_lbf_ft2[-1]
+
+
+def bending_stiffness_lbf_ft2(
+    *,
+    elastic_modulus_psi: float,
+    second_moment_in4: float,
+) -> float:
+    """
+    Convert material modulus and section second moment into beam
+    bending stiffness.
+
+        EI = E * I
+
+    Input units:
+
+        E : lbf / in^2
+        I : in^4
+
+    E * I therefore has units lbf * in^2.
+
+    Convert square inches to square feet:
+
+        1 ft^2 = 144 in^2
+
+    therefore:
+
+        EI[lbf ft^2] = E[psi] * I[in^4] / 144
+    """
+
+    if not math.isfinite(
+        elastic_modulus_psi
+    ):
+        raise ValueError(
+            "Elastic modulus must be finite"
+        )
+
+    if not math.isfinite(
+        second_moment_in4
+    ):
+        raise ValueError(
+            "Second moment of area must be finite"
+        )
+
+    if elastic_modulus_psi <= 0.0:
+        raise ValueError(
+            "Elastic modulus must be positive"
+        )
+
+    if second_moment_in4 <= 0.0:
+        raise ValueError(
+            "Second moment of area must be positive"
+        )
+
+    return (
+        elastic_modulus_psi
+        * second_moment_in4
+        / 144.0
+    )
+
+
+def make_spanwise_bending_stiffness(
+    *,
+    y_ft: Sequence[float],
+    elastic_modulus_psi: Sequence[float],
+    second_moment_in4: Sequence[float],
+) -> SpanwiseBendingStiffness:
+    """
+    Calculate EI independently at every half-wing station.
+
+    No assumption is made that material modulus or cross-sectional
+    inertia is constant along the span.
+    """
+
+    count = len(y_ft)
+
+    if count < 2:
+        raise ValueError(
+            "At least two stiffness stations are required"
+        )
+
+    if len(elastic_modulus_psi) != count:
+        raise ValueError(
+            "Elastic-modulus distribution must match span grid"
+        )
+
+    if len(second_moment_in4) != count:
+        raise ValueError(
+            "Second-moment distribution must match span grid"
+        )
+
+    # Validate the structural span grid.
+    integrate_distributed_load(
+        y_ft,
+        tuple(
+            0.0
+            for _ in y_ft
+        ),
+    )
+
+    ei = tuple(
+        bending_stiffness_lbf_ft2(
+            elastic_modulus_psi=e,
+            second_moment_in4=i,
+        )
+        for e, i in zip(
+            elastic_modulus_psi,
+            second_moment_in4,
+        )
+    )
+
+    return SpanwiseBendingStiffness(
+        y_ft=tuple(
+            float(value)
+            for value in y_ft
+        ),
+        elastic_modulus_psi=tuple(
+            float(value)
+            for value in elastic_modulus_psi
+        ),
+        second_moment_in4=tuple(
+            float(value)
+            for value in second_moment_in4
+        ),
+        ei_lbf_ft2=ei,
+    )
+
+
+def make_piecewise_linear_ei_distribution(
+    *,
+    y_ft: Sequence[float],
+    anchor_y_ft: Sequence[float],
+    anchor_ei_lbf_ft2: Sequence[float],
+) -> tuple[float, ...]:
+    """
+    Interpolate a spanwise EI distribution from structural anchors.
+
+    This is intended for later M20M structural breakpoints such as
+    changes in spar construction.
+
+    The anchors are direct structural inputs. This function does not
+    estimate or invent their values.
+    """
+
+    if len(y_ft) < 2:
+        raise ValueError(
+            "At least two output stations are required"
+        )
+
+    if len(anchor_y_ft) < 2:
+        raise ValueError(
+            "At least two EI anchors are required"
+        )
+
+    if len(anchor_y_ft) != len(
+        anchor_ei_lbf_ft2
+    ):
+        raise ValueError(
+            "EI anchor arrays must have equal length"
+        )
+
+    # Validate output span grid.
+    integrate_distributed_load(
+        y_ft,
+        tuple(
+            0.0
+            for _ in y_ft
+        ),
+    )
+
+    anchors_y = tuple(
+        float(value)
+        for value in anchor_y_ft
+    )
+
+    anchors_ei = tuple(
+        float(value)
+        for value in anchor_ei_lbf_ft2
+    )
+
+    if not all(
+        math.isfinite(value)
+        for value in anchors_y
+    ):
+        raise ValueError(
+            "EI anchor positions must be finite"
+        )
+
+    if not all(
+        math.isfinite(value)
+        for value in anchors_ei
+    ):
+        raise ValueError(
+            "EI anchor values must be finite"
+        )
+
+    if any(
+        value <= 0.0
+        for value in anchors_ei
+    ):
+        raise ValueError(
+            "EI anchor values must be positive"
+        )
+
+    for index in range(
+        len(anchors_y) - 1
+    ):
+        if (
+            anchors_y[index + 1]
+            <= anchors_y[index]
+        ):
+            raise ValueError(
+                "EI anchor positions must be strictly increasing"
+            )
+
+    first_anchor = anchors_y[0]
+    last_anchor = anchors_y[-1]
+
+    result = []
+
+    for raw_y in y_ft:
+        y = float(raw_y)
+
+        if not math.isfinite(y):
+            raise ValueError(
+                "Spanwise position must be finite"
+            )
+
+        if (
+            y < first_anchor - 1e-12
+            or y > last_anchor + 1e-12
+        ):
+            raise ValueError(
+                "Output span grid lies outside EI anchor domain"
+            )
+
+        if math.isclose(
+            y,
+            first_anchor,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            result.append(
+                anchors_ei[0]
+            )
+            continue
+
+        if math.isclose(
+            y,
+            last_anchor,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            result.append(
+                anchors_ei[-1]
+            )
+            continue
+
+        found_interval = False
+
+        for index in range(
+            len(anchors_y) - 1
+        ):
+            y0 = anchors_y[index]
+            y1 = anchors_y[index + 1]
+
+            if (
+                y0 <= y <= y1
+            ):
+                fraction = (
+                    (y - y0)
+                    / (y1 - y0)
+                )
+
+                ei = (
+                    anchors_ei[index]
+                    + fraction
+                    * (
+                        anchors_ei[index + 1]
+                        - anchors_ei[index]
+                    )
+                )
+
+                result.append(
+                    ei
+                )
+
+                found_interval = True
+                break
+
+        if not found_interval:
+            raise ValueError(
+                "Could not interpolate EI at span station"
+            )
+
+    return tuple(
+        result
+    )
