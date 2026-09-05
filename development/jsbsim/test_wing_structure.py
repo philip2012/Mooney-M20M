@@ -60,6 +60,7 @@ from wing_structure import (
     combine_distributed_mass_components,
     make_chord_proportional_mass_shape,
     make_distributed_mass_component,
+    solve_structural_mass_coupled_aero_bending,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -3479,6 +3480,235 @@ class TestStructuralMassComponents(unittest.TestCase):
         self.assertLess(
             inboard_centroid,
             outboard_centroid,
+        )
+
+
+class TestStructuralMassCoupledResponse(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        flow = make_m20m_wing_flow_distribution(
+            planform=self.planform,
+            reference_alpha_rad=0.08,
+            forward_speed_fps=250.0,
+            roll_rate_rad_s=0.0,
+            station_count=41,
+        )
+
+        airfoils = make_m20m_airfoil_distribution(
+            flow.signed_y_ft,
+            self.planform.semi_span_ft,
+        )
+
+        lifting_line = solve_lifting_line(
+            wingspan_ft=self.planform.wingspan_ft,
+            wing_area_sqft=self.planform.wing_area_sqft,
+            theta_rad=flow.theta_rad,
+            chord_ft=flow.chord_ft,
+            alpha_geometric_rad=flow.effective_alpha_rad,
+            lift_curve_slope_per_rad=(
+                airfoils.lift_curve_slope_per_rad
+            ),
+            alpha_zero_lift_rad=(
+                airfoils.alpha_zero_lift_rad
+            ),
+        )
+
+        local_state = make_m20m_local_aero_state_distribution(
+            flow_distribution=flow,
+            air_density_slug_ft3=0.002,
+            dynamic_viscosity_slug_ft_s=4.0e-7,
+        )
+
+        left_load = extract_half_wing_local_q_load(
+            lifting_line,
+            local_state,
+            side="left",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        right_load = extract_half_wing_local_q_load(
+            lifting_line,
+            local_state,
+            side="right",
+            semi_span_ft=self.planform.semi_span_ft,
+            tip_chord_ft=self.planform.tip_chord_ft,
+        )
+
+        self.y = left_load.y_ft
+
+        test_ei_value = 2_000_000.0
+
+        self.ei = tuple(
+            test_ei_value
+            for _ in self.y
+        )
+
+        self.aero_solution = OneWayAeroStructuralSolution(
+            left_load=left_load,
+            right_load=right_load,
+            left_bending=solve_cantilever_bending(
+                left_load.y_ft,
+                left_load.lift_lbf_per_ft,
+                self.ei,
+            ),
+            right_bending=solve_cantilever_bending(
+                right_load.y_ft,
+                right_load.lift_lbf_per_ft,
+                self.ei,
+            ),
+        )
+
+        self.zero_fuel = make_m20m_wing_fuel_distribution(
+            y_ft=self.y,
+            relative_tank_shape=tuple(
+                1.0
+                for _ in self.y
+            ),
+            left_fuel_lbm=0.0,
+            right_fuel_lbm=0.0,
+        )
+
+        self.uniform_shape = tuple(
+            1.0
+            for _ in self.y
+        )
+
+    def make_structure(
+        self,
+        *,
+        name,
+        mass_lbm,
+    ):
+        component = make_distributed_mass_component(
+            name=name,
+            y_ft=self.y,
+            relative_shape=self.uniform_shape,
+            total_mass_lbm=mass_lbm,
+        )
+
+        return combine_distributed_mass_components(
+            y_ft=self.y,
+            components=(
+                component,
+            ),
+        )
+
+    def test_equal_structural_mass_preserves_symmetry(self):
+        left_structure = self.make_structure(
+            name="left structure",
+            mass_lbm=100.0,
+        )
+
+        right_structure = self.make_structure(
+            name="right structure",
+            mass_lbm=100.0,
+        )
+
+        result = solve_structural_mass_coupled_aero_bending(
+            aerodynamic_solution=self.aero_solution,
+            left_structural_mass=left_structure,
+            right_structural_mass=right_structure,
+            fuel_distribution=self.zero_fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+            left_ei_lbf_ft2=self.ei,
+            right_ei_lbf_ft2=self.ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.root_moment_lbf_ft,
+                result.right_bending.root_moment_lbf_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
+        )
+
+    def test_more_structural_mass_reduces_positive_root_bending(self):
+        left_structure = self.make_structure(
+            name="heavy left structure",
+            mass_lbm=150.0,
+        )
+
+        right_structure = self.make_structure(
+            name="light right structure",
+            mass_lbm=50.0,
+        )
+
+        result = solve_structural_mass_coupled_aero_bending(
+            aerodynamic_solution=self.aero_solution,
+            left_structural_mass=left_structure,
+            right_structural_mass=right_structure,
+            fuel_distribution=self.zero_fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+            left_ei_lbf_ft2=self.ei,
+            right_ei_lbf_ft2=self.ei,
+        )
+
+        self.assertLess(
+            result.left_bending.root_moment_lbf_ft,
+            result.right_bending.root_moment_lbf_ft,
+        )
+
+    def test_more_structural_mass_reduces_tip_deflection(self):
+        left_structure = self.make_structure(
+            name="heavy left structure",
+            mass_lbm=150.0,
+        )
+
+        right_structure = self.make_structure(
+            name="light right structure",
+            mass_lbm=50.0,
+        )
+
+        result = solve_structural_mass_coupled_aero_bending(
+            aerodynamic_solution=self.aero_solution,
+            left_structural_mass=left_structure,
+            right_structural_mass=right_structure,
+            fuel_distribution=self.zero_fuel,
+            normal_acceleration_fps2=STANDARD_GRAVITY_FPS2,
+            left_ei_lbf_ft2=self.ei,
+            right_ei_lbf_ft2=self.ei,
+        )
+
+        self.assertLess(
+            result.left_bending.tip_deflection_ft,
+            result.right_bending.tip_deflection_ft,
+        )
+
+    def test_zero_g_removes_structural_inertial_effect(self):
+        left_structure = self.make_structure(
+            name="heavy left structure",
+            mass_lbm=150.0,
+        )
+
+        right_structure = self.make_structure(
+            name="light right structure",
+            mass_lbm=50.0,
+        )
+
+        result = solve_structural_mass_coupled_aero_bending(
+            aerodynamic_solution=self.aero_solution,
+            left_structural_mass=left_structure,
+            right_structural_mass=right_structure,
+            fuel_distribution=self.zero_fuel,
+            normal_acceleration_fps2=0.0,
+            left_ei_lbf_ft2=self.ei,
+            right_ei_lbf_ft2=self.ei,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                result.left_bending.root_moment_lbf_ft,
+                result.right_bending.root_moment_lbf_ft,
+                rel_tol=1e-10,
+                abs_tol=1e-9,
+            )
         )
 
 

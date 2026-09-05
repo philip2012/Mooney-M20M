@@ -3536,3 +3536,94 @@ def make_chord_proportional_mass_shape(
     return tuple(
         values
     )
+
+
+def solve_structural_mass_coupled_aero_bending(
+    *,
+    aerodynamic_solution: OneWayAeroStructuralSolution,
+    left_structural_mass: WingStructuralMassDistribution,
+    right_structural_mass: WingStructuralMassDistribution,
+    fuel_distribution: M20MWingFuelDistribution,
+    normal_acceleration_fps2: float,
+    left_ei_lbf_ft2: Sequence[float],
+    right_ei_lbf_ft2: Sequence[float],
+) -> FuelCoupledAeroStructuralSolution:
+    """
+    Couple complete left/right structural mass distributions into
+    the existing aerodynamic + fuel + inertia beam solution.
+
+    This function is deliberately a thin integration boundary.
+
+    It does not duplicate inertial-load or beam equations. Instead:
+
+        structural components
+            ->
+        combined structural mass distribution
+            ->
+        solve_fuel_coupled_aero_structural_bending()
+
+    This keeps component bookkeeping separate from structural physics.
+    """
+
+    left_aero = aerodynamic_solution.left_load
+    right_aero = aerodynamic_solution.right_load
+
+    if len(
+        left_structural_mass.y_ft
+    ) != len(left_aero.y_ft):
+        raise ValueError(
+            "Left structural mass grid must match aerodynamic grid"
+        )
+
+    if len(
+        right_structural_mass.y_ft
+    ) != len(right_aero.y_ft):
+        raise ValueError(
+            "Right structural mass grid must match aerodynamic grid"
+        )
+
+    if not all(
+        math.isclose(
+            structural_y,
+            aerodynamic_y,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        for structural_y, aerodynamic_y in zip(
+            left_structural_mass.y_ft,
+            left_aero.y_ft,
+        )
+    ):
+        raise ValueError(
+            "Left structural mass grid must match aerodynamic grid"
+        )
+
+    if not all(
+        math.isclose(
+            structural_y,
+            aerodynamic_y,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        for structural_y, aerodynamic_y in zip(
+            right_structural_mass.y_ft,
+            right_aero.y_ft,
+        )
+    ):
+        raise ValueError(
+            "Right structural mass grid must match aerodynamic grid"
+        )
+
+    return solve_fuel_coupled_aero_structural_bending(
+        aerodynamic_solution=aerodynamic_solution,
+        left_structural_mass_slugs_per_ft=(
+            left_structural_mass.mass_slugs_per_ft
+        ),
+        right_structural_mass_slugs_per_ft=(
+            right_structural_mass.mass_slugs_per_ft
+        ),
+        fuel_distribution=fuel_distribution,
+        normal_acceleration_fps2=normal_acceleration_fps2,
+        left_ei_lbf_ft2=left_ei_lbf_ft2,
+        right_ei_lbf_ft2=right_ei_lbf_ft2,
+    )
