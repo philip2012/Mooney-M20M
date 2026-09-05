@@ -43,7 +43,18 @@ from wing_structure import (
     M20M_USABLE_FUEL_PER_WING_GAL,
     make_m20m_wing_fuel_distribution,
     solve_fuel_coupled_aero_structural_bending,
-    OneWayAeroStructuralSolution
+    OneWayAeroStructuralSolution,
+    M20M_FUEL_TANK_INBOARD_WS_IN,
+    M20M_FUEL_TANK_OUTBOARD_WS_IN,
+    M20M_FUEL_TANK_INBOARD_Y_FT,
+    M20M_FUEL_TANK_OUTBOARD_Y_FT,
+    M20M_ROOT_THICKNESS_RATIO,
+    M20M_TIP_THICKNESS_RATIO,
+    distributed_centroid_ft,
+    make_m20m_fuel_tank_shape,
+    make_m20m_geometry_fuel_distribution,
+    mooney_m20m_fuel_tank_shape_value,
+    mooney_m20m_thickness_ratio,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -3079,6 +3090,180 @@ class TestFuelCoupledStructuralResponse(unittest.TestCase):
                 abs_tol=1e-9,
             )
         )
+
+
+class TestMooneyFuelTankGeometry(unittest.TestCase):
+    def setUp(self):
+        self.planform = derive_trapezoidal_planform(
+            wing_area_sqft=MOONEY_WING_AREA_SQFT,
+            wingspan_ft=MOONEY_WINGSPAN_FT,
+            taper_ratio=MOONEY_TAPER_RATIO,
+        )
+
+        self.y = make_uniform_span_grid(
+            self.planform.semi_span_ft,
+            401,
+        )
+
+    def test_documented_tank_station_conversion(self):
+        self.assertTrue(
+            math.isclose(
+                M20M_FUEL_TANK_INBOARD_Y_FT,
+                24.50 / 12.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                M20M_FUEL_TANK_OUTBOARD_Y_FT,
+                88.75 / 12.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_root_and_tip_thickness_ratios(self):
+        root = mooney_m20m_thickness_ratio(
+            0.0,
+            self.planform.semi_span_ft,
+        )
+
+        tip = mooney_m20m_thickness_ratio(
+            self.planform.semi_span_ft,
+            self.planform.semi_span_ft,
+        )
+
+        self.assertTrue(
+            math.isclose(
+                root,
+                M20M_ROOT_THICKNESS_RATIO,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+        self.assertTrue(
+            math.isclose(
+                tip,
+                M20M_TIP_THICKNESS_RATIO,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_fuel_shape_is_zero_inboard_of_tank(self):
+        value = mooney_m20m_fuel_tank_shape_value(
+            y_ft=1.0,
+            planform=self.planform,
+        )
+
+        self.assertEqual(
+            value,
+            0.0,
+        )
+
+    def test_fuel_shape_is_positive_inside_tank(self):
+        midpoint = (
+            0.5
+            * (
+                M20M_FUEL_TANK_INBOARD_Y_FT
+                + M20M_FUEL_TANK_OUTBOARD_Y_FT
+            )
+        )
+
+        value = mooney_m20m_fuel_tank_shape_value(
+            y_ft=midpoint,
+            planform=self.planform,
+        )
+
+        self.assertGreater(
+            value,
+            0.0,
+        )
+
+    def test_fuel_shape_is_zero_outboard_of_tank(self):
+        value = mooney_m20m_fuel_tank_shape_value(
+            y_ft=10.0,
+            planform=self.planform,
+        )
+
+        self.assertEqual(
+            value,
+            0.0,
+        )
+
+    def test_geometry_distribution_reconstructs_full_tank_mass(self):
+        fuel = make_m20m_geometry_fuel_distribution(
+            y_ft=self.y,
+            planform=self.planform,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=267.0,
+        )
+
+        left_slugs = integrate_distributed_load(
+            self.y,
+            fuel.left_mass_slugs_per_ft,
+        )
+
+        left_lbm = (
+            left_slugs
+            * STANDARD_GRAVITY_FPS2
+        )
+
+        self.assertTrue(
+            math.isclose(
+                left_lbm,
+                267.0,
+                rel_tol=1e-12,
+                abs_tol=1e-10,
+            )
+        )
+
+    def test_fuel_centroid_lies_inside_documented_tank(self):
+        fuel = make_m20m_geometry_fuel_distribution(
+            y_ft=self.y,
+            planform=self.planform,
+            left_fuel_lbm=267.0,
+            right_fuel_lbm=0.0,
+        )
+
+        centroid = distributed_centroid_ft(
+            self.y,
+            fuel.left_mass_slugs_per_ft,
+        )
+
+        self.assertGreater(
+            centroid,
+            M20M_FUEL_TANK_INBOARD_Y_FT,
+        )
+
+        self.assertLess(
+            centroid,
+            M20M_FUEL_TANK_OUTBOARD_Y_FT,
+        )
+
+    def test_fuel_distribution_has_no_mass_outside_tank(self):
+        fuel = make_m20m_geometry_fuel_distribution(
+            y_ft=self.y,
+            planform=self.planform,
+            left_fuel_lbm=200.0,
+            right_fuel_lbm=0.0,
+        )
+
+        for y, mass in zip(
+            self.y,
+            fuel.left_mass_slugs_per_ft,
+        ):
+            if (
+                y < M20M_FUEL_TANK_INBOARD_Y_FT
+                or y > M20M_FUEL_TANK_OUTBOARD_Y_FT
+            ):
+                self.assertEqual(
+                    mass,
+                    0.0,
+                )
 
 
 if __name__ == "__main__":

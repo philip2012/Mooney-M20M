@@ -3015,3 +3015,275 @@ def solve_fuel_coupled_aero_structural_bending(
         left_bending=left_bending,
         right_bending=right_bending,
     )
+
+
+# M20M integral fuel-cell span limits.
+#
+# M20M Service & Maintenance Manual, Chapter 57:
+#
+#   fuel cells start at WS 24.50
+#   fuel cells continue through WS 88.75
+#
+# Wing stations are measured in inches from aircraft centerline.
+
+M20M_FUEL_TANK_INBOARD_WS_IN = 24.50
+M20M_FUEL_TANK_OUTBOARD_WS_IN = 88.75
+
+M20M_FUEL_TANK_INBOARD_Y_FT = (
+    M20M_FUEL_TANK_INBOARD_WS_IN
+    / 12.0
+)
+
+M20M_FUEL_TANK_OUTBOARD_Y_FT = (
+    M20M_FUEL_TANK_OUTBOARD_WS_IN
+    / 12.0
+)
+
+
+# Root and tip thickness ratios follow from the documented
+# M20M root/tip airfoil sections:
+#
+#   root section: 15 percent thick
+#   tip section:  12 percent thick
+
+M20M_ROOT_THICKNESS_RATIO = 0.15
+M20M_TIP_THICKNESS_RATIO = 0.12
+
+
+def mooney_m20m_thickness_ratio(
+    y_ft: float,
+    semi_span_ft: float,
+) -> float:
+    """
+    Return reduced-order M20M airfoil thickness ratio at one
+    root-to-tip half-wing station.
+
+    Root:
+        t/c = 0.15
+
+    Tip:
+        t/c = 0.12
+
+    Linear interpolation is an explicit reduced-order assumption.
+    """
+
+    if not math.isfinite(y_ft):
+        raise ValueError(
+            "Spanwise position must be finite"
+        )
+
+    if not math.isfinite(semi_span_ft):
+        raise ValueError(
+            "Semi-span must be finite"
+        )
+
+    if semi_span_ft <= 0.0:
+        raise ValueError(
+            "Semi-span must be positive"
+        )
+
+    if (
+        y_ft < -1e-12
+        or y_ft > semi_span_ft + 1e-12
+    ):
+        raise ValueError(
+            "Spanwise position lies outside half-wing"
+        )
+
+    y = min(
+        max(y_ft, 0.0),
+        semi_span_ft,
+    )
+
+    fraction = (
+        y
+        / semi_span_ft
+    )
+
+    return (
+        M20M_ROOT_THICKNESS_RATIO
+        + fraction
+        * (
+            M20M_TIP_THICKNESS_RATIO
+            - M20M_ROOT_THICKNESS_RATIO
+        )
+    )
+
+
+def mooney_m20m_fuel_tank_shape_value(
+    *,
+    y_ft: float,
+    planform: TrapezoidalPlanform,
+) -> float:
+    """
+    Return relative M20M fuel volume per unit span.
+
+    Actual M20M tank boundaries are used:
+
+        WS 24.50 through WS 88.75
+
+    Within the tank, the reduced-order volume proxy is:
+
+        shape(y) = c(y)^2 * (t/c)(y)
+
+    Airfoil cross-sectional area scales approximately with chord
+    squared and thickness ratio. Since the wet-wing tank occupies
+    a forward portion of the local wing section, this provides a
+    physically motivated distribution shape.
+
+    The result is RELATIVE only. make_m20m_wing_fuel_distribution()
+    subsequently normalizes it to the exact requested fuel mass.
+
+    This is not a claim that actual tank volume follows this formula
+    exactly.
+    """
+
+    if not math.isfinite(y_ft):
+        raise ValueError(
+            "Spanwise position must be finite"
+        )
+
+    if (
+        y_ft < -1e-12
+        or y_ft > planform.semi_span_ft + 1e-12
+    ):
+        raise ValueError(
+            "Spanwise position lies outside half-wing"
+        )
+
+    y = min(
+        max(y_ft, 0.0),
+        planform.semi_span_ft,
+    )
+
+    if (
+        y < M20M_FUEL_TANK_INBOARD_Y_FT
+        or y > M20M_FUEL_TANK_OUTBOARD_Y_FT
+    ):
+        return 0.0
+
+    chord = linear_chord_ft(
+        planform,
+        y,
+    )
+
+    thickness_ratio = mooney_m20m_thickness_ratio(
+        y,
+        planform.semi_span_ft,
+    )
+
+    return (
+        chord ** 2
+        * thickness_ratio
+    )
+
+
+def make_m20m_fuel_tank_shape(
+    *,
+    y_ft: Sequence[float],
+    planform: TrapezoidalPlanform,
+) -> tuple[float, ...]:
+    """
+    Build the actual M20M span-limited relative fuel-cell shape.
+    """
+
+    if len(y_ft) < 2:
+        raise ValueError(
+            "At least two span stations are required"
+        )
+
+    # Validate structural grid.
+    integrate_distributed_load(
+        y_ft,
+        tuple(
+            0.0
+            for _ in y_ft
+        ),
+    )
+
+    shape = tuple(
+        mooney_m20m_fuel_tank_shape_value(
+            y_ft=y,
+            planform=planform,
+        )
+        for y in y_ft
+    )
+
+    if not any(
+        value > 0.0
+        for value in shape
+    ):
+        raise ValueError(
+            "Span grid does not resolve the M20M fuel-cell region"
+        )
+
+    return shape
+
+
+def make_m20m_geometry_fuel_distribution(
+    *,
+    y_ft: Sequence[float],
+    planform: TrapezoidalPlanform,
+    left_fuel_lbm: float,
+    right_fuel_lbm: float,
+) -> M20MWingFuelDistribution:
+    """
+    Build left/right M20M fuel distributions using the documented
+    fuel-cell span boundaries and reduced-order local volume shape.
+    """
+
+    shape = make_m20m_fuel_tank_shape(
+        y_ft=y_ft,
+        planform=planform,
+    )
+
+    return make_m20m_wing_fuel_distribution(
+        y_ft=y_ft,
+        relative_tank_shape=shape,
+        left_fuel_lbm=left_fuel_lbm,
+        right_fuel_lbm=right_fuel_lbm,
+    )
+
+
+def distributed_centroid_ft(
+    y_ft: Sequence[float],
+    distribution_per_ft: Sequence[float],
+) -> float:
+    """
+    Return spanwise centroid of a non-negative distributed quantity.
+
+        y_bar = integral(y p(y) dy) / integral(p(y) dy)
+    """
+
+    if len(y_ft) != len(
+        distribution_per_ft
+    ):
+        raise ValueError(
+            "Distribution length must match span grid"
+        )
+
+    total = integrate_distributed_load(
+        y_ft,
+        distribution_per_ft,
+    )
+
+    if total <= 0.0:
+        raise ValueError(
+            "Centroid requires a positive integrated distribution"
+        )
+
+    first_moment = integrate_distributed_load(
+        y_ft,
+        tuple(
+            y * value
+            for y, value in zip(
+                y_ft,
+                distribution_per_ft,
+            )
+        ),
+    )
+
+    return (
+        first_moment
+        / total
+    )
