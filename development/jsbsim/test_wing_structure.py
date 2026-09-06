@@ -72,6 +72,13 @@ from wing_structure import (
     make_spanwise_spar_section_properties,
     rectangular_second_moment_in4,
     symmetric_cap_pair_second_moment_in4,
+    M20M_DOCUMENTED_MAIN_SPAR_ASSEMBLY_PN,
+    M20M_DOCUMENTED_SPAR_STATIONS_IN,
+    SparGeometryAnchors,
+    interpolate_positive_anchor_distribution,
+    make_spar_geometry_anchors,
+    make_spanwise_spar_sections_from_anchors,
+    wing_station_in_to_ft,
 )
 
 MOONEY_WING_AREA_SQFT = 174.786
@@ -4157,6 +4164,183 @@ class TestSparSectionMechanics(unittest.TestCase):
                     abs_tol=1e-9,
                 )
             )
+
+
+class TestSparGeometryAnchors(unittest.TestCase):
+    def test_documented_m20m_stations_are_increasing(self):
+        for a, b in zip(
+            M20M_DOCUMENTED_SPAR_STATIONS_IN,
+            M20M_DOCUMENTED_SPAR_STATIONS_IN[1:],
+        ):
+            self.assertLess(
+                a,
+                b,
+            )
+
+    def test_documented_main_spar_part_number(self):
+        self.assertEqual(
+            M20M_DOCUMENTED_MAIN_SPAR_ASSEMBLY_PN,
+            "210000-517",
+        )
+
+    def test_wing_station_conversion(self):
+        self.assertTrue(
+            math.isclose(
+                wing_station_in_to_ft(24.0),
+                2.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_geometry_interpolation_hits_anchors(self):
+        values = interpolate_positive_anchor_distribution(
+            y_ft=(
+                0.0,
+                5.0,
+                10.0,
+            ),
+            anchor_y_ft=(
+                0.0,
+                5.0,
+                10.0,
+            ),
+            anchor_values=(
+                3.0,
+                2.0,
+                1.0,
+            ),
+        )
+
+        self.assertEqual(
+            values,
+            (
+                3.0,
+                2.0,
+                1.0,
+            ),
+        )
+
+    def test_geometry_interpolation_is_linear(self):
+        values = interpolate_positive_anchor_distribution(
+            y_ft=(
+                0.0,
+                2.5,
+                5.0,
+            ),
+            anchor_y_ft=(
+                0.0,
+                5.0,
+            ),
+            anchor_values=(
+                4.0,
+                2.0,
+            ),
+        )
+
+        self.assertTrue(
+            math.isclose(
+                values[1],
+                3.0,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        )
+
+    def test_geometry_interpolation_rejects_extrapolation(self):
+        with self.assertRaises(ValueError):
+            interpolate_positive_anchor_distribution(
+                y_ft=(
+                    0.0,
+                    11.0,
+                ),
+                anchor_y_ft=(
+                    0.0,
+                    10.0,
+                ),
+                anchor_values=(
+                    4.0,
+                    2.0,
+                ),
+            )
+
+    def test_geometry_anchors_reject_nonpositive_dimension(self):
+        with self.assertRaises(ValueError):
+            make_spar_geometry_anchors(
+                y_ft=(
+                    0.0,
+                    10.0,
+                ),
+                cap_width_in=(
+                    2.0,
+                    0.0,
+                ),
+                cap_thickness_in=(
+                    0.5,
+                    0.3,
+                ),
+                cap_centroid_separation_in=(
+                    10.0,
+                    6.0,
+                ),
+                web_thickness_in=(
+                    0.1,
+                    0.08,
+                ),
+                web_height_in=(
+                    9.5,
+                    5.7,
+                ),
+            )
+
+    def test_anchor_geometry_generates_spanwise_sections(self):
+        anchors = make_spar_geometry_anchors(
+            y_ft=(
+                0.0,
+                10.0,
+            ),
+            cap_width_in=(
+                2.0,
+                1.0,
+            ),
+            cap_thickness_in=(
+                0.5,
+                0.3,
+            ),
+            cap_centroid_separation_in=(
+                12.0,
+                6.0,
+            ),
+            web_thickness_in=(
+                0.12,
+                0.08,
+            ),
+            web_height_in=(
+                11.5,
+                5.7,
+            ),
+        )
+
+        sections = make_spanwise_spar_sections_from_anchors(
+            y_ft=(
+                0.0,
+                5.0,
+                10.0,
+            ),
+            anchors=anchors,
+        )
+
+        self.assertEqual(
+            len(
+                sections.second_moment_in4
+            ),
+            3,
+        )
+
+        self.assertGreater(
+            sections.second_moment_in4[0],
+            sections.second_moment_in4[-1],
+        )
 
 
 if __name__ == "__main__":
