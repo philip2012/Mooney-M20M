@@ -12,6 +12,8 @@ Before starting a substantial change, check the [README](README.md) for the curr
 - You do **not** need to disclose AI usage, estimate how much AI was used, or certify that you manually reviewed or understood every line.
 - Acceptance is based on the resulting contribution: correct behavior, compatibility with the aircraft, appropriate evidence, maintainability, and licensing/provenance.
 
+However, we encourage contributors to specify the model, reasoning effort, and vendor of the AI that they used for contributing. This gives us a clearer picture of that specific Issue/PR, for example: "I used OpenAI's GPT-6 Astra at High effort".
+
 No authoring method is automatically grounds for acceptance or rejection.
 
 ## Where changes belong
